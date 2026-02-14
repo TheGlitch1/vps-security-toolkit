@@ -6,6 +6,8 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Shell](https://img.shields.io/badge/shell-bash%204.0%2B-orange.svg)](https://www.gnu.org/software/bash/)
 [![Ubuntu](https://img.shields.io/badge/ubuntu-20.04%20|%2022.04%20|%2024.04-purple.svg)](https://ubuntu.com/)
+[![Tested](https://img.shields.io/badge/tested-passing-brightgreen.svg)](tests/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 ## 📋 Description
 

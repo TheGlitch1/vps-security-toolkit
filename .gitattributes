@@ -1,0 +1,16 @@
+# Git attributes for language detection and diff display
+
+# Shell scripts
+*.sh linguist-language=Shell
+
+# Configuration files
+*.conf linguist-language=INI
+*.conf.example linguist-language=INI
+*.cron linguist-language=Shell
+
+# Documentation
+*.md linguist-documentation
+
+# Exclude from language stats
+plan-vpsSecurityToolkit.prompt.md linguist-documentation
+tests/* linguist-vendored=false
