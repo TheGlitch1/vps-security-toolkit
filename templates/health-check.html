@@ -1,632 +1,664 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VPS Health Check - {{HOSTNAME}}</title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    
-    <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-    
-    <style>
-        :root {
-            --bs-success-rgb: 25, 135, 84;
-            --bs-warning-rgb: 255, 193, 7;
-            --bs-danger-rgb: 220, 53, 69;
-        }
-        
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 2rem 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        }
-        
-        .dashboard-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .status-badge {
-            font-size: 1.5rem;
-            padding: 1rem 2rem;
-            border-radius: 50px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        
-        .status-ok { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .status-warning { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; }
-        .status-critical { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; }
-        
-        .metric-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            padding: 1.5rem;
-            color: white;
-            margin-bottom: 1rem;
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .metric-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
-        }
-        
-        .metric-card h6 {
-            font-size: 0.85rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            opacity: 0.9;
-            margin-bottom: 0.5rem;
-        }
-        
-        .metric-card .value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            line-height: 1;
-        }
-        
-        .metric-card .unit {
-            font-size: 1rem;
-            opacity: 0.8;
-        }
-        
-        .metric-card.cpu { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
-        .metric-card.ram { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); }
-        .metric-card.disk { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .metric-card.uptime { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin: 2rem 0;
-        }
-        
-        .progress-custom {
-            height: 30px;
-            border-radius: 15px;
-            background-color: rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        
-        .progress-bar-custom {
-            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            transition: width 0.6s ease;
-        }
-        
-        .service-status {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            border-radius: 10px;
-            font-weight: 500;
-        }
-        
-        .service-active { background-color: rgba(25, 135, 84, 0.1); color: #198754; }
-        .service-inactive { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
-        
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 2rem 0 1rem 0;
-            color: #333;
-            border-left: 4px solid #667eea;
-            padding-left: 1rem;
-        }
-        
-        .info-table {
-            background: #f8f9fa;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-        
-        .info-table tr:hover {
-            background-color: rgba(102, 126, 234, 0.05);
-        }
-        
-        .export-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .export-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        .footer-info {
-            text-align: center;
-            color: white;
-            margin-top: 2rem;
-            opacity: 0.9;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VPS Health Check - {{HOSTNAME}}</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+
+  <style>
+    :root {
+      --bs-success-rgb: 25, 135, 84;
+      --bs-warning-rgb: 255, 193, 7;
+      --bs-danger-rgb: 220, 53, 69;
+    }
+
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .dashboard-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .status-badge {
+      font-size: 1.5rem;
+      padding: 1rem 2rem;
+      border-radius: 50px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .status-ok {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .status-warning {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+      color: white;
+    }
+
+    .status-critical {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      color: white;
+    }
+
+    .metric-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 15px;
+      padding: 1.5rem;
+      color: white;
+      margin-bottom: 1rem;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .metric-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    .metric-card h6 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.9;
+      margin-bottom: 0.5rem;
+    }
+
+    .metric-card .value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .metric-card .unit {
+      font-size: 1rem;
+      opacity: 0.8;
+    }
+
+    .metric-card.cpu {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .metric-card.ram {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+
+    .metric-card.disk {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .metric-card.uptime {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 2rem 0;
+    }
+
+    .progress-custom {
+      height: 30px;
+      border-radius: 15px;
+      background-color: rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .progress-bar-custom {
+      background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 600;
+      transition: width 0.6s ease;
+    }
+
+    .service-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      font-weight: 500;
+    }
+
+    .service-active {
+      background-color: rgba(25, 135, 84, 0.1);
+      color: #198754;
+    }
+
+    .service-inactive {
+      background-color: rgba(220, 53, 69, 0.1);
+      color: #dc3545;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 2rem 0 1rem 0;
+      color: #333;
+      border-left: 4px solid #667eea;
+      padding-left: 1rem;
+    }
+
+    .info-table {
+      background: #f8f9fa;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .info-table tr:hover {
+      background-color: rgba(102, 126, 234, 0.05);
+    }
+
+    .export-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .export-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .footer-info {
+      text-align: center;
+      color: white;
+      margin-top: 2rem;
+      opacity: 0.9;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="dashboard-container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="display-4 mb-0">
-                        <i class="bi bi-heart-pulse-fill text-danger"></i> VPS Health Check
-                    </h1>
-                    <p class="text-muted mb-0">Monitoring en temps réel - {{HOSTNAME}}</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <span class="status-badge status-{{STATUS_CLASS}}">
-                        {{STATUS_VALUE}}
-                    </span>
-                </div>
-            </div>
-            
-            <div class="row mt-3">
-                <div class="col">
-                    <p class="mb-0"><i class="bi bi-calendar3"></i> <strong>Date:</strong> {{TIMESTAMP}}</p>
-                    <p class="mb-0"><i class="bi bi-server"></i> <strong>Version:</strong> {{VERSION}}</p>
-                </div>
-            </div>
+  <div class="container">
+    <!-- Header -->
+    <div class="dashboard-container">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1 class="display-4 mb-0">
+            <i class="bi bi-heart-pulse-fill text-danger"></i> VPS Health Check
+          </h1>
+          <p class="text-muted mb-0">Monitoring en temps réel - {{HOSTNAME}}</p>
         </div>
+        <div class="col-md-4 text-end">
+          <span class="status-badge status-{{STATUS_CLASS}}">
+            {{STATUS_VALUE}}
+          </span>
+        </div>
+      </div>
 
-        <!-- Summary Cards -->
-        <div class="row">
-            <div class="col-md-3">
-                <div class="metric-card cpu">
-                    <h6><i class="bi bi-cpu"></i> CPU Usage</h6>
-                    <div>
-                        <span class="value">{{CPU_VALUE}}</span>
-                        <span class="unit">%</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="metric-card ram">
-                    <h6><i class="bi bi-memory"></i> RAM Usage</h6>
-                    <div>
-                        <span class="value">{{RAM_VALUE}}</span>
-                        <span class="unit">%</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="metric-card disk">
-                    <h6><i class="bi bi-hdd"></i> Disk Usage</h6>
-                    <div>
-                        <span class="value">{{DISK_VALUE}}</span>
-                        <span class="unit">%</span>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="metric-card uptime">
-                    <h6><i class="bi bi-clock"></i> Uptime</h6>
-                    <div>
-                        <span class="value">{{UPTIME_DAYS}}</span>
-                        <span class="unit">days</span>
-                    </div>
-                </div>
-            </div>
+      <div class="row mt-3">
+        <div class="col">
+          <p class="mb-0"><i class="bi bi-calendar3"></i> <strong>Date:</strong> {{TIMESTAMP}}</p>
+          <p class="mb-0"><i class="bi bi-server"></i> <strong>Version:</strong> {{VERSION}}</p>
         </div>
-
-        <!-- Summary Issues -->
-        <div class="dashboard-container">
-            <div class="row text-center">
-                <div class="col-md-4">
-                    <h3 class="text-danger">{{CRITICAL_COUNT}}</h3>
-                    <p class="text-muted">Problèmes Critiques</p>
-                </div>
-                <div class="col-md-4">
-                    <h3 class="text-warning">{{WARNING_COUNT}}</h3>
-                    <p class="text-muted">Avertissements</p>
-                </div>
-                <div class="col-md-4">
-                    <h3 class="text-success">{{SERVICES_ACTIVE}}</h3>
-                    <p class="text-muted">Services Actifs</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- CPU Details -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-cpu-fill"></i> CPU Details</h2>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <table class="table info-table">
-                        <tr>
-                            <td><strong>CPU Cores</strong></td>
-                            <td>{{CPU_CORES}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>CPU Usage</strong></td>
-                            <td>{{CPU_USAGE}}%</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Temperature</strong></td>
-                            <td>{{CPU_TEMP}}°C</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Load Average (1m)</strong></td>
-                            <td>{{LOAD_1M}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Load Average (5m)</strong></td>
-                            <td>{{LOAD_5M}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Load Average (15m)</strong></td>
-                            <td>{{LOAD_15M}}</td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="col-md-6">
-                    <div class="chart-container">
-                        <canvas id="cpuChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Memory Details -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-memory"></i> Memory Details</h2>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>RAM</h5>
-                    <table class="table info-table">
-                        <tr>
-                            <td><strong>Total</strong></td>
-                            <td>{{RAM_TOTAL}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Used</strong></td>
-                            <td>{{RAM_USED}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Free</strong></td>
-                            <td>{{RAM_FREE}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Available</strong></td>
-                            <td>{{RAM_AVAILABLE}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Usage</strong></td>
-                            <td>{{RAM_PERCENT}}%</td>
-                        </tr>
-                    </table>
-                    
-                    <div class="progress-custom mb-3">
-                        <div class="progress-bar-custom" style="width: {{RAM_PERCENT}}%">
-                            {{RAM_PERCENT}}%
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <h5>SWAP</h5>
-                    <table class="table info-table">
-                        <tr>
-                            <td><strong>Total</strong></td>
-                            <td>{{SWAP_TOTAL}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Used</strong></td>
-                            <td>{{SWAP_USED}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Free</strong></td>
-                            <td>{{SWAP_FREE}}</td>
-                        </tr>
-                        <tr>
-                            <td><strong>Usage</strong></td>
-                            <td>{{SWAP_PERCENT}}%</td>
-                        </tr>
-                    </table>
-                    
-                    <div class="progress-custom mb-3">
-                        <div class="progress-bar-custom" style="width: {{SWAP_PERCENT}}%">
-                            {{SWAP_PERCENT}}%
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="chart-container">
-                <canvas id="memoryChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Disk Usage -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-hdd-fill"></i> Disk Usage</h2>
-            
-            <div class="table-responsive">
-                <table class="table table-hover" id="diskTable">
-                    <thead class="table-dark">
-                        <tr>
-                            <th>Filesystem</th>
-                            <th>Size</th>
-                            <th>Used</th>
-                            <th>Available</th>
-                            <th>Usage %</th>
-                            <th>Mounted On</th>
-                            <th>Progress</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{DISK_ROWS}}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Services Status -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-gear-fill"></i> Services Status</h2>
-            
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center">
-                            <i class="bi bi-shield-lock fs-1 mb-2" style="color: #667eea;"></i>
-                            <h5>SSH</h5>
-                            <span class="service-status {{SSH_STATUS_CLASS}}">
-                                <i class="bi bi-{{SSH_ICON}}"></i> {{SSH_STATUS}}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center">
-                            <i class="bi bi-clock-history fs-1 mb-2" style="color: #667eea;"></i>
-                            <h5>Cron</h5>
-                            <span class="service-status {{CRON_STATUS_CLASS}}">
-                                <i class="bi bi-{{CRON_ICON}}"></i> {{CRON_STATUS}}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body text-center">
-                            <i class="bi bi-shield-check fs-1 mb-2" style="color: #667eea;"></i>
-                            <h5>Fail2ban</h5>
-                            <span class="service-status {{FAIL2BAN_STATUS_CLASS}}">
-                                <i class="bi bi-{{FAIL2BAN_ICON}}"></i> {{FAIL2BAN_STATUS}}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Network Stats -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-diagram-3-fill"></i> Network Statistics</h2>
-            
-            <div class="row">
-                <div class="col-md-4 text-center mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-primary">{{CONNECTIONS_ESTABLISHED}}</h3>
-                            <p class="text-muted mb-0">Connexions Établies</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-info">{{LISTENING_PORTS}}</h3>
-                            <p class="text-muted mb-0">Ports en Écoute</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-warning">{{TIME_WAIT}}</h3>
-                            <p class="text-muted mb-0">TIME_WAIT</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Processes -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-list-task"></i> Process Statistics</h2>
-            
-            <div class="row">
-                <div class="col-md-4 text-center mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-primary">{{PROCESS_TOTAL}}</h3>
-                            <p class="text-muted mb-0">Total Processes</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-success">{{PROCESS_RUNNING}}</h3>
-                            <p class="text-muted mb-0">Running</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4 text-center mb-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-danger">{{PROCESS_ZOMBIE}}</h3>
-                            <p class="text-muted mb-0">Zombies</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Export Buttons -->
-        <div class="dashboard-container text-center">
-            <button class="export-btn me-2" onclick="window.print()">
-                <i class="bi bi-printer"></i> Imprimer le Rapport
-            </button>
-            <button class="export-btn" onclick="exportJSON()">
-                <i class="bi bi-download"></i> Export JSON
-            </button>
-        </div>
-
-        <!-- Footer -->
-        <div class="footer-info">
-            <p class="mb-0">
-                <i class="bi bi-shield-check"></i> VPS Security Toolkit v{{VERSION}} | 
-                Generated: {{TIMESTAMP}} | 
-                <a href="https://github.com/TheGlitch1/vps-security-toolkit" class="text-white">GitHub</a>
-            </p>
-        </div>
+      </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery & DataTables -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-    
-    <script>
-        // CPU Gauge Chart
-        const cpuCtx = document.getElementById('cpuChart').getContext('2d');
-        const cpuChart = new Chart(cpuCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Used', 'Free'],
-                datasets: [{
-                    data: [{{CPU_VALUE}}, 100 - {{CPU_VALUE}}],
-                    backgroundColor: [
-                        'rgba(102, 126, 234, 0.8)',
-                        'rgba(200, 200, 200, 0.2)'
-                    ],
-                    borderWidth: 0
-                }]
+    <!-- Summary Cards -->
+    <div class="row">
+      <div class="col-md-3">
+        <div class="metric-card cpu">
+          <h6><i class="bi bi-cpu"></i> CPU Usage</h6>
+          <div>
+            <span class="value">{{CPU_VALUE}}</span>
+            <span class="unit">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card ram">
+          <h6><i class="bi bi-memory"></i> RAM Usage</h6>
+          <div>
+            <span class="value">{{RAM_VALUE}}</span>
+            <span class="unit">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card disk">
+          <h6><i class="bi bi-hdd"></i> Disk Usage</h6>
+          <div>
+            <span class="value">{{DISK_VALUE}}</span>
+            <span class="unit">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="metric-card uptime">
+          <h6><i class="bi bi-clock"></i> Uptime</h6>
+          <div>
+            <span class="value">{{UPTIME_DAYS}}</span>
+            <span class="unit">days</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary Issues -->
+    <div class="dashboard-container">
+      <div class="row text-center">
+        <div class="col-md-4">
+          <h3 class="text-danger">{{CRITICAL_COUNT}}</h3>
+          <p class="text-muted">Problèmes Critiques</p>
+        </div>
+        <div class="col-md-4">
+          <h3 class="text-warning">{{WARNING_COUNT}}</h3>
+          <p class="text-muted">Avertissements</p>
+        </div>
+        <div class="col-md-4">
+          <h3 class="text-success">{{SERVICES_ACTIVE}}</h3>
+          <p class="text-muted">Services Actifs</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CPU Details -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-cpu-fill"></i> CPU Details</h2>
+
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table info-table">
+            <tr>
+              <td><strong>CPU Cores</strong></td>
+              <td>{{CPU_CORES}}</td>
+            </tr>
+            <tr>
+              <td><strong>CPU Usage</strong></td>
+              <td>{{CPU_USAGE}}%</td>
+            </tr>
+            <tr>
+              <td><strong>Temperature</strong></td>
+              <td>{{CPU_TEMP}}°C</td>
+            </tr>
+            <tr>
+              <td><strong>Load Average (1m)</strong></td>
+              <td>{{LOAD_1M}}</td>
+            </tr>
+            <tr>
+              <td><strong>Load Average (5m)</strong></td>
+              <td>{{LOAD_5M}}</td>
+            </tr>
+            <tr>
+              <td><strong>Load Average (15m)</strong></td>
+              <td>{{LOAD_15M}}</td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <div class="chart-container">
+            <canvas id="cpuChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Memory Details -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-memory"></i> Memory Details</h2>
+
+      <div class="row">
+        <div class="col-md-6">
+          <h5>RAM</h5>
+          <table class="table info-table">
+            <tr>
+              <td><strong>Total</strong></td>
+              <td>{{RAM_TOTAL}}</td>
+            </tr>
+            <tr>
+              <td><strong>Used</strong></td>
+              <td>{{RAM_USED}}</td>
+            </tr>
+            <tr>
+              <td><strong>Free</strong></td>
+              <td>{{RAM_FREE}}</td>
+            </tr>
+            <tr>
+              <td><strong>Available</strong></td>
+              <td>{{RAM_AVAILABLE}}</td>
+            </tr>
+            <tr>
+              <td><strong>Usage</strong></td>
+              <td>{{RAM_PERCENT}}%</td>
+            </tr>
+          </table>
+
+          <div class="progress-custom mb-3">
+            <div class="progress-bar-custom" style="width: {{RAM_PERCENT}}%">
+              {{RAM_PERCENT}}%
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <h5>SWAP</h5>
+          <table class="table info-table">
+            <tr>
+              <td><strong>Total</strong></td>
+              <td>{{SWAP_TOTAL}}</td>
+            </tr>
+            <tr>
+              <td><strong>Used</strong></td>
+              <td>{{SWAP_USED}}</td>
+            </tr>
+            <tr>
+              <td><strong>Free</strong></td>
+              <td>{{SWAP_FREE}}</td>
+            </tr>
+            <tr>
+              <td><strong>Usage</strong></td>
+              <td>{{SWAP_PERCENT}}%</td>
+            </tr>
+          </table>
+
+          <div class="progress-custom mb-3">
+            <div class="progress-bar-custom" style="width: {{SWAP_PERCENT}}%">
+              {{SWAP_PERCENT}}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-container">
+        <canvas id="memoryChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Disk Usage -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-hdd-fill"></i> Disk Usage</h2>
+
+      <div class="table-responsive">
+        <table class="table table-hover" id="diskTable">
+          <thead class="table-dark">
+            <tr>
+              <th>Filesystem</th>
+              <th>Size</th>
+              <th>Used</th>
+              <th>Available</th>
+              <th>Usage %</th>
+              <th>Mounted On</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{DISK_ROWS}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Services Status -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-gear-fill"></i> Services Status</h2>
+
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-shield-lock fs-1 mb-2" style="color: #667eea;"></i>
+              <h5>SSH</h5>
+              <span class="service-status {{SSH_STATUS_CLASS}}">
+                <i class="bi bi-{{SSH_ICON}}"></i> {{SSH_STATUS}}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-clock-history fs-1 mb-2" style="color: #667eea;"></i>
+              <h5>Cron</h5>
+              <span class="service-status {{CRON_STATUS_CLASS}}">
+                <i class="bi bi-{{CRON_ICON}}"></i> {{CRON_STATUS}}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+              <i class="bi bi-shield-check fs-1 mb-2" style="color: #667eea;"></i>
+              <h5>Fail2ban</h5>
+              <span class="service-status {{FAIL2BAN_STATUS_CLASS}}">
+                <i class="bi bi-{{FAIL2BAN_ICON}}"></i> {{FAIL2BAN_STATUS}}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Network Stats -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-diagram-3-fill"></i> Network Statistics</h2>
+
+      <div class="row">
+        <div class="col-md-4 text-center mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-primary">{{CONNECTIONS_ESTABLISHED}}</h3>
+              <p class="text-muted mb-0">Connexions Établies</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 text-center mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-info">{{LISTENING_PORTS}}</h3>
+              <p class="text-muted mb-0">Ports en Écoute</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 text-center mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-warning">{{TIME_WAIT}}</h3>
+              <p class="text-muted mb-0">TIME_WAIT</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Processes -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-list-task"></i> Process Statistics</h2>
+
+      <div class="row">
+        <div class="col-md-4 text-center mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-primary">{{PROCESS_TOTAL}}</h3>
+              <p class="text-muted mb-0">Total Processes</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 text-center mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-success">{{PROCESS_RUNNING}}</h3>
+              <p class="text-muted mb-0">Running</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4 text-center mb-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-danger">{{PROCESS_ZOMBIE}}</h3>
+              <p class="text-muted mb-0">Zombies</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="dashboard-container text-center">
+      <button class="export-btn me-2" onclick="window.print()">
+        <i class="bi bi-printer"></i> Imprimer le Rapport
+      </button>
+      <button class="export-btn" onclick="exportJSON()">
+        <i class="bi bi-download"></i> Export JSON
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-info">
+      <p class="mb-0">
+        <i class="bi bi-shield-check"></i> VPS Security Toolkit v{{VERSION}} |
+        Generated: {{TIMESTAMP}} |
+        <a href="https://github.com/TheGlitch1/vps-security-toolkit" class="text-white">GitHub</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- jQuery & DataTables -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+  <script>
+    // CPU Gauge Chart
+    const cpuCtx = document.getElementById('cpuChart').getContext('2d');
+    const cpuChart = new Chart(cpuCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Used', 'Free'],
+        datasets: [{
+          data: [{{ CPU_VALUE }}, 100 - {{ CPU_VALUE }}],
+      backgroundColor: [
+        'rgba(102, 126, 234, 0.8)',
+        'rgba(200, 200, 200, 0.2)'
+      ],
+      borderWidth: 0
+    }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    title: {
-                        display: true,
-                        text: 'CPU Usage',
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Memory Chart
-        const memCtx = document.getElementById('memoryChart').getContext('2d');
-        const memChart = new Chart(memCtx, {
-            type: 'bar',
-            data: {
-                labels: ['RAM', 'SWAP'],
-                datasets: [{
-                    label: 'Used %',
-                    data: [{{RAM_PERCENT}}, {{SWAP_PERCENT}}],
-                    backgroundColor: [
-                        'rgba(249, 93, 251, 0.8)',
-                        'rgba(79, 172, 254, 0.8)'
-                    ],
-                    borderRadius: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        max: 100,
-                        ticks: {
-                            callback: function(value) {
-                                return value + '%';
-                            }
-                        }
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: 'Memory Usage Comparison',
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Initialize DataTable for disk usage
-        $(document).ready(function() {
-            $('#diskTable').DataTable({
-                pageLength: 10,
-                order: [[4, 'desc']],
-                language: {
-                    search: 'Rechercher:',
-                    lengthMenu: 'Afficher _MENU_ entrées',
-                    info: 'Affichage de _START_ à _END_ sur _TOTAL_ entrées',
-                    paginate: {
-                        first: 'Premier',
-                        last: 'Dernier',
-                        next: 'Suivant',
-                        previous: 'Précédent'
-                    }
-                }
-            });
-        });
-
-        // Export JSON function
-        function exportJSON() {
-            const jsonFile = '{{JSON_FILE_PATH}}';
-            window.location.href = jsonFile;
+    options: {
+      responsive: true,
+        maintainAspectRatio: false,
+          plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        title: {
+          display: true,
+            text: 'CPU Usage',
+              font: {
+            size: 16,
+              weight: 'bold'
+          }
         }
-    </script>
+      }
+    }
+        });
+
+    // Memory Chart
+    const memCtx = document.getElementById('memoryChart').getContext('2d');
+    const memChart = new Chart(memCtx, {
+      type: 'bar',
+      data: {
+        labels: ['RAM', 'SWAP'],
+        datasets: [{
+          label: 'Used %',
+          data: [{{ RAM_PERCENT }}, {{ SWAP_PERCENT }}],
+      backgroundColor: [
+        'rgba(249, 93, 251, 0.8)',
+        'rgba(79, 172, 254, 0.8)'
+      ],
+      borderRadius: 10
+    }]
+            },
+    options: {
+      responsive: true,
+        maintainAspectRatio: false,
+          scales: {
+        y: {
+          beginAtZero: true,
+            max: 100,
+              ticks: {
+            callback: function(value) {
+              return value + '%';
+            }
+          }
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+            text: 'Memory Usage Comparison',
+              font: {
+            size: 16,
+              weight: 'bold'
+          }
+        }
+      }
+    }
+        });
+
+    // Initialize DataTable for disk usage
+    $(document).ready(function () {
+      $('#diskTable').DataTable({
+        pageLength: 10,
+        order: [[4, 'desc']],
+        language: {
+          search: 'Rechercher:',
+          lengthMenu: 'Afficher _MENU_ entrées',
+          info: 'Affichage de _START_ à _END_ sur _TOTAL_ entrées',
+          paginate: {
+            first: 'Premier',
+            last: 'Dernier',
+            next: 'Suivant',
+            previous: 'Précédent'
+          }
+        }
+      });
+    });
+
+    // Export JSON function
+    function exportJSON() {
+      const jsonFile = '{{JSON_FILE_PATH}}';
+      window.location.href = jsonFile;
+    }
+  </script>
 </body>
+
 </html>

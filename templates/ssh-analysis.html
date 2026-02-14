@@ -1,611 +1,633 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SSH Attack Analysis - {{HOSTNAME}}</title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    
-    <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
-    
-    <style>
-        body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 2rem 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        }
-        
-        .dashboard-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 15px;
-            padding: 2rem;
-            color: white;
-            margin-bottom: 1rem;
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
-            transition: transform 0.3s;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-        
-        .stat-card.danger { background: linear-gradient(135deg, #f85032 0%, #e73827 100%); }
-        .stat-card.warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .stat-card.info { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .stat-card.success { background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%); }
-        
-        .stat-value {
-            font-size: 3rem;
-            font-weight: 700;
-            line-height: 1;
-        }
-        
-        .stat-label {
-            font-size: 1rem;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 0.5rem;
-        }
-        
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 2rem 0 1rem 0;
-            color: #333;
-            border-left: 4px solid #667eea;
-            padding-left: 1rem;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 350px;
-            margin: 2rem 0;
-        }
-        
-        .country-badge {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.85rem;
-            margin: 0.25rem;
-        }
-        
-        .flag {
-            font-size: 1.2rem;
-            margin-right: 0.25rem;
-        }
-        
-        .banned-badge {
-            background-color: rgba(220, 53, 69, 0.1);
-            color: #dc3545;
-            padding: 0.25rem 0.75rem;
-            border-radius: 15px;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        
-        .active-badge {
-            background-color: rgba(25, 135, 84, 0.1);
-            color: #198754;
-            padding: 0.25rem 0.75rem;
-            border-radius: 15px;
-            font-weight: 600;
-            font-size: 0.85rem;
-        }
-        
-        .attack-pattern {
-            background: #f8f9fa;
-            border-left: 4px solid #dc3545;
-            border-radius: 8px;
-            padding: 1rem;
-            margin: 0.5rem 0;
-        }
-        
-        .attack-pattern.warning {
-            border-left-color: #ffc107;
-        }
-        
-        .attack-pattern.info {
-            border-left-color: #0dcaf0;
-        }
-        
-        .world-map {
-            background: #f8f9fa;
-            border-radius: 15px;
-            padding: 2rem;
-            margin: 1rem 0;
-            text-align: center;
-        }
-        
-        .country-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            justify-content: center;
-            margin-top: 1rem;
-        }
-        
-        .export-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: transform 0.2s;
-        }
-        
-        .export-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .period-badge {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            display: inline-block;
-        }
-        
-        table.dataTable thead th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-        }
-        
-        table.dataTable tbody tr:hover {
-            background-color: rgba(102, 126, 234, 0.05);
-        }
-        
-        .top-attacker-card {
-            border: 2px solid #dc3545;
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-            background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.01) 100%);
-        }
-        
-        .rank-badge {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-        
-        .rank-badge.gold { background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%); }
-        .rank-badge.silver { background: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%); }
-        .rank-badge.bronze { background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSH Attack Analysis - {{HOSTNAME}}</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+  <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .dashboard-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 15px;
+      padding: 2rem;
+      color: white;
+      margin-bottom: 1rem;
+      box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+      transition: transform 0.3s;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+    }
+
+    .stat-card.danger {
+      background: linear-gradient(135deg, #f85032 0%, #e73827 100%);
+    }
+
+    .stat-card.warning {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .stat-card.info {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .stat-card.success {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+
+    .stat-value {
+      font-size: 3rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 1rem;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 0.5rem;
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 2rem 0 1rem 0;
+      color: #333;
+      border-left: 4px solid #667eea;
+      padding-left: 1rem;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 350px;
+      margin: 2rem 0;
+    }
+
+    .country-badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin: 0.25rem;
+    }
+
+    .flag {
+      font-size: 1.2rem;
+      margin-right: 0.25rem;
+    }
+
+    .banned-badge {
+      background-color: rgba(220, 53, 69, 0.1);
+      color: #dc3545;
+      padding: 0.25rem 0.75rem;
+      border-radius: 15px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .active-badge {
+      background-color: rgba(25, 135, 84, 0.1);
+      color: #198754;
+      padding: 0.25rem 0.75rem;
+      border-radius: 15px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .attack-pattern {
+      background: #f8f9fa;
+      border-left: 4px solid #dc3545;
+      border-radius: 8px;
+      padding: 1rem;
+      margin: 0.5rem 0;
+    }
+
+    .attack-pattern.warning {
+      border-left-color: #ffc107;
+    }
+
+    .attack-pattern.info {
+      border-left-color: #0dcaf0;
+    }
+
+    .world-map {
+      background: #f8f9fa;
+      border-radius: 15px;
+      padding: 2rem;
+      margin: 1rem 0;
+      text-align: center;
+    }
+
+    .country-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    .export-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: none;
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+
+    .export-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .period-badge {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      display: inline-block;
+    }
+
+    table.dataTable thead th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+    }
+
+    table.dataTable tbody tr:hover {
+      background-color: rgba(102, 126, 234, 0.05);
+    }
+
+    .top-attacker-card {
+      border: 2px solid #dc3545;
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+      background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.01) 100%);
+    }
+
+    .rank-badge {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .rank-badge.gold {
+      background: linear-gradient(135deg, #f9d423 0%, #ff4e50 100%);
+    }
+
+    .rank-badge.silver {
+      background: linear-gradient(135deg, #bdc3c7 0%, #2c3e50 100%);
+    }
+
+    .rank-badge.bronze {
+      background: linear-gradient(135deg, #cd7f32 0%, #8b4513 100%);
+    }
+  </style>
 </head>
+
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="dashboard-container">
-            <div class="row align-items-center">
-                <div class="col-md-8">
-                    <h1 class="display-4 mb-0">
-                        <i class="bi bi-shield-exclamation text-danger"></i> SSH Attack Analysis
-                    </h1>
-                    <p class="text-muted mb-0">Analyse des tentatives d'intrusion SSH - {{HOSTNAME}}</p>
-                </div>
-                <div class="col-md-4 text-end">
-                    <span class="period-badge">
-                        <i class="bi bi-calendar-range"></i> Période: {{PERIOD}}
-                    </span>
-                </div>
-            </div>
-            
-            <div class="row mt-3">
-                <div class="col">
-                    <p class="mb-0">
-                        <i class="bi bi-calendar3"></i> <strong>Généré:</strong> {{TIMESTAMP}}<br>
-                        <i class="bi bi-server"></i> <strong>Version:</strong> {{VERSION}}
-                    </p>
-                </div>
-            </div>
+  <div class="container">
+    <!-- Header -->
+    <div class="dashboard-container">
+      <div class="row align-items-center">
+        <div class="col-md-8">
+          <h1 class="display-4 mb-0">
+            <i class="bi bi-shield-exclamation text-danger"></i> SSH Attack Analysis
+          </h1>
+          <p class="text-muted mb-0">Analyse des tentatives d'intrusion SSH - {{HOSTNAME}}</p>
         </div>
+        <div class="col-md-4 text-end">
+          <span class="period-badge">
+            <i class="bi bi-calendar-range"></i> Période: {{PERIOD}}
+          </span>
+        </div>
+      </div>
 
-        <!-- Statistics Cards -->
-        <div class="row">
-            <div class="col-md-3">
-                <div class="stat-card danger">
-                    <div class="stat-value">{{FAILED_ATTEMPTS}}</div>
-                    <div class="stat-label"><i class="bi bi-x-circle"></i> Échecs Total</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card warning">
-                    <div class="stat-value">{{UNIQUE_IPS}}</div>
-                    <div class="stat-label"><i class="bi bi-globe"></i> IPs Uniques</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card info">
-                    <div class="stat-value">{{INVALID_USERS}}</div>
-                    <div class="stat-label"><i class="bi bi-person-x"></i> Users Invalides</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card success">
-                    <div class="stat-value">{{SUCCESSFUL_LOGINS}}</div>
-                    <div class="stat-label"><i class="bi bi-check-circle"></i> Connexions OK</div>
-                </div>
-            </div>
+      <div class="row mt-3">
+        <div class="col">
+          <p class="mb-0">
+            <i class="bi bi-calendar3"></i> <strong>Généré:</strong> {{TIMESTAMP}}<br>
+            <i class="bi bi-server"></i> <strong>Version:</strong> {{VERSION}}
+          </p>
         </div>
-
-        <!-- Additional Stats -->
-        <div class="dashboard-container">
-            <div class="row text-center">
-                <div class="col-md-4">
-                    <h3 class="text-danger">{{ROOT_ATTACKS}}</h3>
-                    <p class="text-muted">Attaques Root</p>
-                </div>
-                <div class="col-md-4">
-                    <h3 class="text-warning">{{BANNED_IPS}}</h3>
-                    <p class="text-muted">IPs Bannies</p>
-                </div>
-                <div class="col-md-4">
-                    <h3 class="text-info">{{COUNTRIES_COUNT}}</h3>
-                    <p class="text-muted">Pays d'Origine</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Attack Patterns -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-exclamation-triangle-fill"></i> Patterns d'Attaque Détectés</h2>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="attack-pattern">
-                        <h5><i class="bi bi-lightning-charge-fill text-danger"></i> Brute Force</h5>
-                        <p class="mb-0"><strong>{{BRUTE_FORCE_COUNT}} sources</strong> - Tentatives répétées depuis même IP</p>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="attack-pattern warning">
-                        <h5><i class="bi bi-cpu-fill text-warning"></i> Port Scans</h5>
-                        <p class="mb-0"><strong>{{PORT_SCAN_COUNT}} sources</strong> - Connexions rapides multiples</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="attack-pattern info">
-                        <h5><i class="bi bi-book-fill text-info"></i> Dictionary Attacks</h5>
-                        <p class="mb-0"><strong>{{DICTIONARY_USERS}} users</strong> - Noms d'utilisateurs variés</p>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="attack-pattern">
-                        <h5><i class="bi bi-person-fill-exclamation text-danger"></i> Root Attacks</h5>
-                        <p class="mb-0"><strong>{{ROOT_ATTACK_SOURCES}} sources</strong> - Ciblage compte root</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Top 3 Attackers Highlight -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-trophy-fill"></i> Top 3 Attackers</h2>
-            
-            {{TOP_3_CARDS}}
-        </div>
-
-        <!-- Geographic Distribution -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-geo-alt-fill"></i> Distribution Géographique</h2>
-            
-            <div class="chart-container">
-                <canvas id="geoChart"></canvas>
-            </div>
-            
-            <div class="world-map">
-                <h5><i class="bi bi-globe2"></i> Pays d'Origine des Attaques</h5>
-                <div class="country-list">
-                    {{COUNTRY_BADGES}}
-                </div>
-            </div>
-        </div>
-
-        <!-- Attack Timeline -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-graph-up"></i> Timeline des Attaques</h2>
-            
-            <div class="chart-container">
-                <canvas id="timelineChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Top Attackers Table -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-table"></i> Top Attackers (Détails)</h2>
-            
-            <div class="table-responsive">
-                <table class="table table-hover" id="attackersTable">
-                    <thead>
-                        <tr>
-                            <th>Rang</th>
-                            <th>IP Address</th>
-                            <th>Tentatives</th>
-                            <th>Pays</th>
-                            <th>Ville</th>
-                            <th>ISP</th>
-                            <th>Statut</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {{ATTACKERS_ROWS}}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Successful Logins -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-check-circle-fill text-success"></i> Connexions Réussies</h2>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <div class="card border-success">
-                        <div class="card-header bg-success text-white">
-                            <h5 class="mb-0"><i class="bi bi-key-fill"></i> Par Clé SSH</h5>
-                        </div>
-                        <div class="card-body">
-                            <h3 class="text-success">{{SSH_KEY_LOGINS}}</h3>
-                            <p class="text-muted mb-0">Connexions sécurisées</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card border-warning">
-                        <div class="card-header bg-warning text-dark">
-                            <h5 class="mb-0"><i class="bi bi-lock-fill"></i> Par Mot de Passe</h5>
-                        </div>
-                        <div class="card-body">
-                            <h3 class="text-warning">{{PASSWORD_LOGINS}}</h3>
-                            <p class="text-muted mb-0">Connexions par password</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="mt-3">
-                <h6>IPs des connexions réussies:</h6>
-                <div>
-                    {{SUCCESSFUL_IPS}}
-                </div>
-            </div>
-        </div>
-
-        <!-- Fail2ban Status -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-shield-fill-check"></i> Fail2ban Status</h2>
-            
-            <div class="row">
-                <div class="col-md-6">
-                    <table class="table info-table">
-                        <tr>
-                            <td><strong>Statut</strong></td>
-                            <td><span class="badge bg-{{FAIL2BAN_STATUS_CLASS}}">{{FAIL2BAN_STATUS}}</span></td>
-                        </tr>
-                        <tr>
-                            <td><strong>IPs Bannies</strong></td>
-                            <td><strong class="text-danger">{{FAIL2BAN_BANNED}}</strong></td>
-                        </tr>
-                        <tr>
-                            <td><strong>Jails Actives</strong></td>
-                            <td><strong class="text-success">{{FAIL2BAN_JAILS}}</strong></td>
-                        </tr>
-                    </table>
-                </div>
-                <div class="col-md-6">
-                    <div class="chart-container" style="height: 200px;">
-                        <canvas id="fail2banChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Export Buttons -->
-        <div class="dashboard-container text-center">
-            <button class="export-btn me-2" onclick="window.print()">
-                <i class="bi bi-printer"></i> Imprimer le Rapport
-            </button>
-            <button class="export-btn me-2" onclick="exportJSON()">
-                <i class="bi bi-download"></i> Export JSON
-            </button>
-            <button class="export-btn" onclick="exportCSV()">
-                <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
-            </button>
-        </div>
-
-        <!-- Footer -->
-        <div class="text-center text-white mt-4">
-            <p class="mb-0">
-                <i class="bi bi-shield-check"></i> VPS Security Toolkit v{{VERSION}} | 
-                Generated: {{TIMESTAMP}} | 
-                <a href="https://github.com/TheGlitch1/vps-security-toolkit" class="text-white">GitHub</a>
-            </p>
-        </div>
+      </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery & DataTables -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
-    
-    <script>
-        // Geographic Distribution Chart
-        const geoCtx = document.getElementById('geoChart').getContext('2d');
-        const geoChart = new Chart(geoCtx, {
-            type: 'doughnut',
-            data: {
-                labels: {{GEO_LABELS}},
-                datasets: [{
-                    data: {{GEO_DATA}},
-                    backgroundColor: [
-                        'rgba(220, 53, 69, 0.8)',
-                        'rgba(255, 193, 7, 0.8)',
-                        'rgba(13, 202, 240, 0.8)',
-                        'rgba(102, 126, 234, 0.8)',
-                        'rgba(25, 135, 84, 0.8)',
-                        'rgba(108, 117, 125, 0.8)'
-                    ]
+    <!-- Statistics Cards -->
+    <div class="row">
+      <div class="col-md-3">
+        <div class="stat-card danger">
+          <div class="stat-value">{{FAILED_ATTEMPTS}}</div>
+          <div class="stat-label"><i class="bi bi-x-circle"></i> Échecs Total</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card warning">
+          <div class="stat-value">{{UNIQUE_IPS}}</div>
+          <div class="stat-label"><i class="bi bi-globe"></i> IPs Uniques</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card info">
+          <div class="stat-value">{{INVALID_USERS}}</div>
+          <div class="stat-label"><i class="bi bi-person-x"></i> Users Invalides</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="stat-card success">
+          <div class="stat-value">{{SUCCESSFUL_LOGINS}}</div>
+          <div class="stat-label"><i class="bi bi-check-circle"></i> Connexions OK</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional Stats -->
+    <div class="dashboard-container">
+      <div class="row text-center">
+        <div class="col-md-4">
+          <h3 class="text-danger">{{ROOT_ATTACKS}}</h3>
+          <p class="text-muted">Attaques Root</p>
+        </div>
+        <div class="col-md-4">
+          <h3 class="text-warning">{{BANNED_IPS}}</h3>
+          <p class="text-muted">IPs Bannies</p>
+        </div>
+        <div class="col-md-4">
+          <h3 class="text-info">{{COUNTRIES_COUNT}}</h3>
+          <p class="text-muted">Pays d'Origine</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attack Patterns -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-exclamation-triangle-fill"></i> Patterns d'Attaque Détectés</h2>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="attack-pattern">
+            <h5><i class="bi bi-lightning-charge-fill text-danger"></i> Brute Force</h5>
+            <p class="mb-0"><strong>{{BRUTE_FORCE_COUNT}} sources</strong> - Tentatives répétées depuis même IP</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="attack-pattern warning">
+            <h5><i class="bi bi-cpu-fill text-warning"></i> Port Scans</h5>
+            <p class="mb-0"><strong>{{PORT_SCAN_COUNT}} sources</strong> - Connexions rapides multiples</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="attack-pattern info">
+            <h5><i class="bi bi-book-fill text-info"></i> Dictionary Attacks</h5>
+            <p class="mb-0"><strong>{{DICTIONARY_USERS}} users</strong> - Noms d'utilisateurs variés</p>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="attack-pattern">
+            <h5><i class="bi bi-person-fill-exclamation text-danger"></i> Root Attacks</h5>
+            <p class="mb-0"><strong>{{ROOT_ATTACK_SOURCES}} sources</strong> - Ciblage compte root</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top 3 Attackers Highlight -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-trophy-fill"></i> Top 3 Attackers</h2>
+
+      {{TOP_3_CARDS}}
+    </div>
+
+    <!-- Geographic Distribution -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-geo-alt-fill"></i> Distribution Géographique</h2>
+
+      <div class="chart-container">
+        <canvas id="geoChart"></canvas>
+      </div>
+
+      <div class="world-map">
+        <h5><i class="bi bi-globe2"></i> Pays d'Origine des Attaques</h5>
+        <div class="country-list">
+          {{COUNTRY_BADGES}}
+        </div>
+      </div>
+    </div>
+
+    <!-- Attack Timeline -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-graph-up"></i> Timeline des Attaques</h2>
+
+      <div class="chart-container">
+        <canvas id="timelineChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top Attackers Table -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-table"></i> Top Attackers (Détails)</h2>
+
+      <div class="table-responsive">
+        <table class="table table-hover" id="attackersTable">
+          <thead>
+            <tr>
+              <th>Rang</th>
+              <th>IP Address</th>
+              <th>Tentatives</th>
+              <th>Pays</th>
+              <th>Ville</th>
+              <th>ISP</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ATTACKERS_ROWS}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Successful Logins -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-check-circle-fill text-success"></i> Connexions Réussies</h2>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card border-success">
+            <div class="card-header bg-success text-white">
+              <h5 class="mb-0"><i class="bi bi-key-fill"></i> Par Clé SSH</h5>
+            </div>
+            <div class="card-body">
+              <h3 class="text-success">{{SSH_KEY_LOGINS}}</h3>
+              <p class="text-muted mb-0">Connexions sécurisées</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card border-warning">
+            <div class="card-header bg-warning text-dark">
+              <h5 class="mb-0"><i class="bi bi-lock-fill"></i> Par Mot de Passe</h5>
+            </div>
+            <div class="card-body">
+              <h3 class="text-warning">{{PASSWORD_LOGINS}}</h3>
+              <p class="text-muted mb-0">Connexions par password</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <h6>IPs des connexions réussies:</h6>
+        <div>
+          {{SUCCESSFUL_IPS}}
+        </div>
+      </div>
+    </div>
+
+    <!-- Fail2ban Status -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-shield-fill-check"></i> Fail2ban Status</h2>
+
+      <div class="row">
+        <div class="col-md-6">
+          <table class="table info-table">
+            <tr>
+              <td><strong>Statut</strong></td>
+              <td><span class="badge bg-{{FAIL2BAN_STATUS_CLASS}}">{{FAIL2BAN_STATUS}}</span></td>
+            </tr>
+            <tr>
+              <td><strong>IPs Bannies</strong></td>
+              <td><strong class="text-danger">{{FAIL2BAN_BANNED}}</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Jails Actives</strong></td>
+              <td><strong class="text-success">{{FAIL2BAN_JAILS}}</strong></td>
+            </tr>
+          </table>
+        </div>
+        <div class="col-md-6">
+          <div class="chart-container" style="height: 200px;">
+            <canvas id="fail2banChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="dashboard-container text-center">
+      <button class="export-btn me-2" onclick="window.print()">
+        <i class="bi bi-printer"></i> Imprimer le Rapport
+      </button>
+      <button class="export-btn me-2" onclick="exportJSON()">
+        <i class="bi bi-download"></i> Export JSON
+      </button>
+      <button class="export-btn" onclick="exportCSV()">
+        <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-white mt-4">
+      <p class="mb-0">
+        <i class="bi bi-shield-check"></i> VPS Security Toolkit v{{VERSION}} |
+        Generated: {{TIMESTAMP}} |
+        <a href="https://github.com/TheGlitch1/vps-security-toolkit" class="text-white">GitHub</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- jQuery & DataTables -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+  <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+  <script>
+    // Geographic Distribution Chart
+    const geoCtx = document.getElementById('geoChart').getContext('2d');
+    const geoChart = new Chart(geoCtx, {
+      type: 'doughnut',
+      data: {
+        labels: {{ GEO_LABELS }},
+    datasets: [{
+      data: {{ GEO_DATA }},
+      backgroundColor: [
+      'rgba(220, 53, 69, 0.8)',
+      'rgba(255, 193, 7, 0.8)',
+      'rgba(13, 202, 240, 0.8)',
+      'rgba(102, 126, 234, 0.8)',
+      'rgba(25, 135, 84, 0.8)',
+      'rgba(108, 117, 125, 0.8)'
+    ]
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Répartition Géographique des Attaques',
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Timeline Chart
-        const timelineCtx = document.getElementById('timelineChart').getContext('2d');
-        const timelineChart = new Chart(timelineCtx, {
-            type: 'line',
-            data: {
-                labels: {{TIMELINE_LABELS}},
-                datasets: [{
-                    label: 'Tentatives d\'attaque',
-                    data: {{TIMELINE_DATA}},
-                    borderColor: 'rgba(220, 53, 69, 1)',
-                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
-                    tension: 0.4,
-                    fill: true,
-                    pointRadius: 5,
-                    pointHoverRadius: 7
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    title: {
-                        display: true,
-                        text: 'Évolution des Attaques',
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Fail2ban Chart
-        const f2bCtx = document.getElementById('fail2banChart').getContext('2d');
-        const f2bChart = new Chart(f2bCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['IPs Bannies', 'IPs Actives'],
-                datasets: [{
-                    data: [{{FAIL2BAN_BANNED}}, {{UNIQUE_IPS}} - {{FAIL2BAN_BANNED}}],
-                    backgroundColor: [
-                        'rgba(220, 53, 69, 0.8)',
-                        'rgba(25, 135, 84, 0.8)'
-                    ]
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    }
-                }
-            }
-        });
-
-        // Initialize DataTable
-        $(document).ready(function() {
-            $('#attackersTable').DataTable({
-                pageLength: 20,
-                order: [[2, 'desc']],
-                dom: 'Bfrtip',
-                buttons: [
-                    'copy', 'csv', 'excel', 'print'
-                ],
-                language: {
-                    search: 'Rechercher:',
-                    lengthMenu: 'Afficher _MENU_ entrées',
-                    info: 'Affichage de _START_ à _END_ sur _TOTAL_ entrées',
-                    paginate: {
-                        first: 'Premier',
-                        last: 'Dernier',
-                        next: 'Suivant',
-                        previous: 'Précédent'
-                    }
-                }
-            });
-        });
-
-        // Export functions
-        function exportJSON() {
-            window.location.href = '{{JSON_FILE_PATH}}';
+    options: {
+      responsive: true,
+        maintainAspectRatio: false,
+          plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        title: {
+          display: true,
+            text: 'Répartition Géographique des Attaques',
+              font: {
+            size: 16,
+              weight: 'bold'
+          }
         }
+      }
+    }
+        });
 
-        function exportCSV() {
-            $('#attackersTable').DataTable().button('.buttons-csv').trigger();
+    // Timeline Chart
+    const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+    const timelineChart = new Chart(timelineCtx, {
+      type: 'line',
+      data: {
+        labels: {{ TIMELINE_LABELS }},
+    datasets: [{
+      label: 'Tentatives d\'attaque',
+      data: {{ TIMELINE_DATA }},
+      borderColor: 'rgba(220, 53, 69, 1)',
+      backgroundColor: 'rgba(220, 53, 69, 0.1)',
+      tension: 0.4,
+      fill: true,
+      pointRadius: 5,
+      pointHoverRadius: 7
+                }]
+            },
+    options: {
+      responsive: true,
+        maintainAspectRatio: false,
+          scales: {
+        y: {
+          beginAtZero: true
         }
-    </script>
+      },
+      plugins: {
+        legend: {
+          display: false
+        },
+        title: {
+          display: true,
+            text: 'Évolution des Attaques',
+              font: {
+            size: 16,
+              weight: 'bold'
+          }
+        }
+      }
+    }
+        });
+
+    // Fail2ban Chart
+    const f2bCtx = document.getElementById('fail2banChart').getContext('2d');
+    const f2bChart = new Chart(f2bCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['IPs Bannies', 'IPs Actives'],
+        datasets: [{
+          data: [{{ FAIL2BAN_BANNED }}, {{ UNIQUE_IPS }} - {{ FAIL2BAN_BANNED }}],
+    backgroundColor: [
+      'rgba(220, 53, 69, 0.8)',
+      'rgba(25, 135, 84, 0.8)'
+    ]
+                }]
+            },
+    options: {
+      responsive: true,
+        maintainAspectRatio: false,
+          plugins: {
+        legend: {
+          position: 'bottom'
+        }
+      }
+    }
+        });
+
+    // Initialize DataTable
+    $(document).ready(function () {
+      $('#attackersTable').DataTable({
+        pageLength: 20,
+        order: [[2, 'desc']],
+        dom: 'Bfrtip',
+        buttons: [
+          'copy', 'csv', 'excel', 'print'
+        ],
+        language: {
+          search: 'Rechercher:',
+          lengthMenu: 'Afficher _MENU_ entrées',
+          info: 'Affichage de _START_ à _END_ sur _TOTAL_ entrées',
+          paginate: {
+            first: 'Premier',
+            last: 'Dernier',
+            next: 'Suivant',
+            previous: 'Précédent'
+          }
+        }
+      });
+    });
+
+    // Export functions
+    function exportJSON() {
+      window.location.href = '{{JSON_FILE_PATH}}';
+    }
+
+    function exportCSV() {
+      $('#attackersTable').DataTable().button('.buttons-csv').trigger();
+    }
+  </script>
 </body>
+
 </html>

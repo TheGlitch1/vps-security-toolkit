@@ -1,672 +1,729 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intrusion Detection - {{HOSTNAME}}</title>
-    
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    
-    <!-- DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
-    
-    <style>
-        body {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            min-height: 100vh;
-            padding: 2rem 0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-        }
-        
-        .dashboard-container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            padding: 2rem;
-            margin-bottom: 2rem;
-        }
-        
-        .status-header {
-            text-align: center;
-            padding: 3rem 2rem;
-            border-radius: 20px;
-            margin-bottom: 2rem;
-        }
-        
-        .status-ok { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-        .status-suspicious { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
-        .status-warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
-        .status-critical { background: linear-gradient(135deg, #f85032 0%, #e73827 100%); }
-        
-        .status-icon {
-            font-size: 5rem;
-            color: white;
-            margin-bottom: 1rem;
-        }
-        
-        .status-text {
-            font-size: 3rem;
-            font-weight: 700;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        
-        .status-subtitle {
-            font-size: 1.2rem;
-            color: rgba(255,255,255,0.9);
-            margin-top: 1rem;
-        }
-        
-        .issue-counter {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-top: 2rem;
-        }
-        
-        .counter-item {
-            text-align: center;
-            color: white;
-        }
-        
-        .counter-value {
-            font-size: 2.5rem;
-            font-weight: 700;
-            line-height: 1;
-        }
-        
-        .counter-label {
-            font-size: 0.9rem;
-            opacity: 0.9;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-        
-        .check-card {
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border-left: 5px solid #198754;
-            background: #f8f9fa;
-            transition: transform 0.3s;
-        }
-        
-        .check-card:hover {
-            transform: translateX(5px);
-        }
-        
-        .check-card.critical { border-left-color: #dc3545; }
-        .check-card.warning { border-left-color: #ffc107; }
-        .check-card.suspicious { border-left-color: #0dcaf0; }
-        .check-card.ok { border-left-color: #198754; }
-        
-        .check-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-        
-        .check-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #333;
-        }
-        
-        .check-status-badge {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-        
-        .badge-ok { background-color: rgba(25, 135, 84, 0.1); color: #198754; }
-        .badge-suspicious { background-color: rgba(13, 202, 240, 0.1); color: #0dcaf0; }
-        .badge-warning { background-color: rgba(255, 193, 7, 0.1); color: #ffc107; }
-        .badge-critical { background-color: rgba(220, 53, 69, 0.1); color: #dc3545; }
-        
-        .finding-item {
-            background: white;
-            border-radius: 10px;
-            padding: 1rem;
-            margin: 0.5rem 0;
-            border-left: 3px solid #dc3545;
-        }
-        
-        .finding-item.warning { border-left-color: #ffc107; }
-        .finding-item.info { border-left-color: #0dcaf0; }
-        
-        .session-card {
-            background: white;
-            border-radius: 10px;
-            padding: 1rem;
-            margin: 0.5rem 0;
-            border: 1px solid #dee2e6;
-        }
-        
-        .process-alert {
-            background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
-            border: 2px solid #dc3545;
-            border-radius: 10px;
-            padding: 1.5rem;
-            margin: 1rem 0;
-        }
-        
-        .port-badge {
-            display: inline-block;
-            padding: 0.5rem 1rem;
-            border-radius: 15px;
-            margin: 0.25rem;
-            font-weight: 600;
-        }
-        
-        .port-standard { background-color: rgba(25, 135, 84, 0.1); color: #198754; }
-        .port-suspicious { background-color: rgba(255, 193, 7, 0.1); color: #ffc107; }
-        
-        .suid-file {
-            font-family: 'Courier New', monospace;
-            background: #f8f9fa;
-            padding: 0.5rem;
-            border-radius: 5px;
-            margin: 0.25rem 0;
-            border-left: 3px solid #6c757d;
-        }
-        
-        .suid-file.critical {
-            border-left-color: #dc3545;
-            background: rgba(220, 53, 69, 0.05);
-        }
-        
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin: 2rem 0 1rem 0;
-            color: #333;
-            border-left: 4px solid #fa709a;
-            padding-left: 1rem;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin: 2rem 0;
-        }
-        
-        .export-btn {
-            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-            border: none;
-            color: white;
-            padding: 0.75rem 2rem;
-            border-radius: 10px;
-            font-weight: 600;
-            transition: transform 0.2s;
-        }
-        
-        .export-btn:hover {
-            transform: translateY(-2px);
-        }
-        
-        .timeline-item {
-            border-left: 2px solid #dee2e6;
-            padding-left: 1.5rem;
-            margin-left: 1rem;
-            padding-bottom: 1rem;
-            position: relative;
-        }
-        
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: -6px;
-            top: 0;
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #0dcaf0;
-        }
-        
-        .timeline-item.critical::before { background: #dc3545; }
-        .timeline-item.warning::before { background: #ffc107; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intrusion Detection - {{HOSTNAME}}</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      min-height: 100vh;
+      padding: 2rem 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+
+    .dashboard-container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .status-header {
+      text-align: center;
+      padding: 3rem 2rem;
+      border-radius: 20px;
+      margin-bottom: 2rem;
+    }
+
+    .status-ok {
+      background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+    }
+
+    .status-suspicious {
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    }
+
+    .status-warning {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+    }
+
+    .status-critical {
+      background: linear-gradient(135deg, #f85032 0%, #e73827 100%);
+    }
+
+    .status-icon {
+      font-size: 5rem;
+      color: white;
+      margin-bottom: 1rem;
+    }
+
+    .status-text {
+      font-size: 3rem;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .status-subtitle {
+      font-size: 1.2rem;
+      color: rgba(255, 255, 255, 0.9);
+      margin-top: 1rem;
+    }
+
+    .issue-counter {
+      display: flex;
+      justify-content: center;
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+
+    .counter-item {
+      text-align: center;
+      color: white;
+    }
+
+    .counter-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .counter-label {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .check-card {
+      border-radius: 15px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-left: 5px solid #198754;
+      background: #f8f9fa;
+      transition: transform 0.3s;
+    }
+
+    .check-card:hover {
+      transform: translateX(5px);
+    }
+
+    .check-card.critical {
+      border-left-color: #dc3545;
+    }
+
+    .check-card.warning {
+      border-left-color: #ffc107;
+    }
+
+    .check-card.suspicious {
+      border-left-color: #0dcaf0;
+    }
+
+    .check-card.ok {
+      border-left-color: #198754;
+    }
+
+    .check-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .check-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #333;
+    }
+
+    .check-status-badge {
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .badge-ok {
+      background-color: rgba(25, 135, 84, 0.1);
+      color: #198754;
+    }
+
+    .badge-suspicious {
+      background-color: rgba(13, 202, 240, 0.1);
+      color: #0dcaf0;
+    }
+
+    .badge-warning {
+      background-color: rgba(255, 193, 7, 0.1);
+      color: #ffc107;
+    }
+
+    .badge-critical {
+      background-color: rgba(220, 53, 69, 0.1);
+      color: #dc3545;
+    }
+
+    .finding-item {
+      background: white;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      border-left: 3px solid #dc3545;
+    }
+
+    .finding-item.warning {
+      border-left-color: #ffc107;
+    }
+
+    .finding-item.info {
+      border-left-color: #0dcaf0;
+    }
+
+    .session-card {
+      background: white;
+      border-radius: 10px;
+      padding: 1rem;
+      margin: 0.5rem 0;
+      border: 1px solid #dee2e6;
+    }
+
+    .process-alert {
+      background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.05) 100%);
+      border: 2px solid #dc3545;
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin: 1rem 0;
+    }
+
+    .port-badge {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      border-radius: 15px;
+      margin: 0.25rem;
+      font-weight: 600;
+    }
+
+    .port-standard {
+      background-color: rgba(25, 135, 84, 0.1);
+      color: #198754;
+    }
+
+    .port-suspicious {
+      background-color: rgba(255, 193, 7, 0.1);
+      color: #ffc107;
+    }
+
+    .suid-file {
+      font-family: 'Courier New', monospace;
+      background: #f8f9fa;
+      padding: 0.5rem;
+      border-radius: 5px;
+      margin: 0.25rem 0;
+      border-left: 3px solid #6c757d;
+    }
+
+    .suid-file.critical {
+      border-left-color: #dc3545;
+      background: rgba(220, 53, 69, 0.05);
+    }
+
+    .section-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 2rem 0 1rem 0;
+      color: #333;
+      border-left: 4px solid #fa709a;
+      padding-left: 1rem;
+    }
+
+    .chart-container {
+      position: relative;
+      height: 300px;
+      margin: 2rem 0;
+    }
+
+    .export-btn {
+      background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+      border: none;
+      color: white;
+      padding: 0.75rem 2rem;
+      border-radius: 10px;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+
+    .export-btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .timeline-item {
+      border-left: 2px solid #dee2e6;
+      padding-left: 1.5rem;
+      margin-left: 1rem;
+      padding-bottom: 1rem;
+      position: relative;
+    }
+
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -6px;
+      top: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #0dcaf0;
+    }
+
+    .timeline-item.critical::before {
+      background: #dc3545;
+    }
+
+    .timeline-item.warning::before {
+      background: #ffc107;
+    }
+  </style>
 </head>
+
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="dashboard-container">
-            <div class="row align-items-center">
-                <div class="col-md-9">
-                    <h1 class="display-4 mb-0">
-                        <i class="bi bi-shield-fill-exclamation text-danger"></i> Intrusion Detection
-                    </h1>
-                    <p class="text-muted mb-0">Détection d'intrusion et vérification d'intégrité - {{HOSTNAME}}</p>
-                </div>
-                <div class="col-md-3 text-end">
-                    <p class="mb-0">
-                        <i class="bi bi-calendar3"></i> {{TIMESTAMP}}<br>
-                        <i class="bi bi-server"></i> Version {{VERSION}}
-                    </p>
-                </div>
-            </div>
+  <div class="container">
+    <!-- Header -->
+    <div class="dashboard-container">
+      <div class="row align-items-center">
+        <div class="col-md-9">
+          <h1 class="display-4 mb-0">
+            <i class="bi bi-shield-fill-exclamation text-danger"></i> Intrusion Detection
+          </h1>
+          <p class="text-muted mb-0">Détection d'intrusion et vérification d'intégrité - {{HOSTNAME}}</p>
         </div>
-
-        <!-- Status Header -->
-        <div class="dashboard-container">
-            <div class="status-header status-{{STATUS_CLASS}}">
-                <div class="status-icon">
-                    <i class="bi bi-{{STATUS_ICON}}"></i>
-                </div>
-                <div class="status-text">{{STATUS_TEXT}}</div>
-                <div class="status-subtitle">Période d'analyse: {{HOURS}} heures</div>
-                
-                <div class="issue-counter">
-                    <div class="counter-item">
-                        <div class="counter-value">{{CRITICAL_COUNT}}</div>
-                        <div class="counter-label">Critiques</div>
-                    </div>
-                    <div class="counter-item">
-                        <div class="counter-value">{{WARNING_COUNT}}</div>
-                        <div class="counter-label">Avertissements</div>
-                    </div>
-                    <div class="counter-item">
-                        <div class="counter-value">{{SUSPICIOUS_COUNT}}</div>
-                        <div class="counter-label">Suspects</div>
-                    </div>
-                </div>
-            </div>
+        <div class="col-md-3 text-end">
+          <p class="mb-0">
+            <i class="bi bi-calendar3"></i> {{TIMESTAMP}}<br>
+            <i class="bi bi-server"></i> Version {{VERSION}}
+          </p>
         </div>
-
-        <!-- Quick Summary -->
-        <div class="dashboard-container">
-            <div class="row text-center">
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-primary">{{SESSIONS_COUNT}}</h3>
-                            <p class="text-muted mb-0">Sessions SSH</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-info">{{PROCESSES_SUSPECT}}</h3>
-                            <p class="text-muted mb-0">Processus Suspects</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-warning">{{PORTS_UNUSUAL}}</h3>
-                            <p class="text-muted mb-0">Ports Inhabituels</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card border-0 shadow-sm">
-                        <div class="card-body">
-                            <h3 class="text-danger">{{SUID_SUSPICIOUS}}</h3>
-                            <p class="text-muted mb-0">SUID Suspects</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Active Sessions Check -->
-        <div class="dashboard-container">
-            <div class="check-card {{SESSIONS_STATUS_CLASS}}">
-                <div class="check-header">
-                    <div class="check-title">
-                        <i class="bi bi-person-check-fill"></i> Sessions SSH Actives
-                    </div>
-                    <span class="check-status-badge badge-{{SESSIONS_STATUS_CLASS}}">
-                        {{SESSIONS_STATUS}}
-                    </span>
-                </div>
-                
-                <p><strong>Sessions détectées:</strong> {{SESSIONS_COUNT}}</p>
-                
-                <div class="sessions-list">
-                    {{SESSIONS_LIST}}
-                </div>
-            </div>
-        </div>
-
-        <!-- Suspicious Processes Check -->
-        <div class="dashboard-container">
-            <div class="check-card {{PROCESSES_STATUS_CLASS}}">
-                <div class="check-header">
-                    <div class="check-title">
-                        <i class="bi bi-cpu-fill"></i> Processus Suspects
-                    </div>
-                    <span class="check-status-badge badge-{{PROCESSES_STATUS_CLASS}}">
-                        {{PROCESSES_STATUS}}
-                    </span>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6">
-                        <p><strong>Miners détectés:</strong> {{MINERS_COUNT}}</p>
-                        <p><strong>High-CPU (>80%):</strong> {{HIGH_CPU_COUNT}}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong>Backdoors détectés:</strong> {{BACKDOORS_COUNT}}</p>
-                        <p><strong>Total suspects:</strong> {{PROCESSES_SUSPECT}}</p>
-                    </div>
-                </div>
-                
-                {{PROCESSES_DETAILS}}
-            </div>
-        </div>
-
-        <!-- Listening Ports Check -->
-        <div class="dashboard-container">
-            <div class="check-card {{PORTS_STATUS_CLASS}}">
-                <div class="check-header">
-                    <div class="check-title">
-                        <i class="bi bi-hdd-network-fill"></i> Ports en Écoute
-                    </div>
-                    <span class="check-status-badge badge-{{PORTS_STATUS_CLASS}}">
-                        {{PORTS_STATUS}}
-                    </span>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <h5>Total: {{PORTS_TOTAL}}</h5>
-                    </div>
-                    <div class="col-md-6">
-                        <h5 class="text-warning">Non-standard: {{PORTS_UNUSUAL}}</h5>
-                    </div>
-                </div>
-                
-                <div class="table-responsive">
-                    <table class="table table-sm" id="portsTable">
-                        <thead class="table-dark">
-                            <tr>
-                                <th>Port</th>
-                                <th>Proto</th>
-                                <th>Service</th>
-                                <th>PID/Program</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {{PORTS_ROWS}}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <!-- SUID Files Check -->
-        <div class="dashboard-container">
-            <div class="check-card {{SUID_STATUS_CLASS}}">
-                <div class="check-header">
-                    <div class="check-title">
-                        <i class="bi bi-file-lock-fill"></i> Fichiers SUID
-                    </div>
-                    <span class="check-status-badge badge-{{SUID_STATUS_CLASS}}">
-                        {{SUID_STATUS}}
-                    </span>
-                </div>
-                
-                <div class="alert alert-info">
-                    <i class="bi bi-info-circle-fill"></i> 
-                    Les fichiers SUID peuvent être exploités pour escalader les privilèges.
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <p><strong>Total SUID:</strong> {{SUID_TOTAL}}</p>
-                    </div>
-                    <div class="col-md-6">
-                        <p><strong class="text-danger">Suspects:</strong> {{SUID_SUSPICIOUS}}</p>
-                    </div>
-                </div>
-                
-                <h6>Fichiers détectés:</h6>
-                <div class="suid-list">
-                    {{SUID_FILES}}
-                </div>
-            </div>
-        </div>
-
-        <!-- System Modifications Check -->
-        <div class="dashboard-container">
-            <div class="check-card {{MODIFICATIONS_STATUS_CLASS}}">
-                <div class="check-header">
-                    <div class="check-title">
-                        <i class="bi bi-file-earmark-diff-fill"></i> Modifications Système
-                    </div>
-                    <span class="check-status-badge badge-{{MODIFICATIONS_STATUS_CLASS}}">
-                        {{MODIFICATIONS_STATUS}}
-                    </span>
-                </div>
-                
-                <p><strong>Fichiers critiques modifiés ({{HOURS}}h):</strong> {{MODIFICATIONS_COUNT}}</p>
-                
-                <h6>Fichiers surveillés:</h6>
-                <div class="timeline">
-                    {{MODIFICATIONS_TIMELINE}}
-                </div>
-            </div>
-        </div>
-
-        <!-- Network Connections Check -->
-        <div class="dashboard-container">
-            <div class="check-card {{NETWORK_STATUS_CLASS}}">
-                <div class="check-header">
-                    <div class="check-title">
-                        <i class="bi bi-diagram-3-fill"></i> Connexions Réseau
-                    </div>
-                    <span class="check-status-badge badge-{{NETWORK_STATUS_CLASS}}">
-                        {{NETWORK_STATUS}}
-                    </span>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-4">
-                        <h5>{{CONNECTIONS_TOTAL}}</h5>
-                        <p class="text-muted mb-0">Total</p>
-                    </div>
-                    <div class="col-md-4">
-                        <h5 class="text-danger">{{CONNECTIONS_SUSPICIOUS}}</h5>
-                        <p class="text-muted mb-0">Suspectes</p>
-                    </div>
-                    <div class="col-md-4">
-                        <h5 class="text-info">{{CONNECTIONS_EXTERNAL}}</h5>
-                        <p class="text-muted mb-0">Externes</p>
-                    </div>
-                </div>
-                
-                {{CONNECTIONS_DETAILS}}
-                
-                <div class="chart-container">
-                    <canvas id="connectionsChart"></canvas>
-                </div>
-            </div>
-        </div>
-
-        <!-- Hidden Files Check -->
-        <div class="dashboard-container">
-            <div class="check-card {{HIDDEN_STATUS_CLASS}}">
-                <div class="check-header">
-                    <div class="check-title">
-                        <i class="bi bi-eye-slash-fill"></i> Fichiers Cachés
-                    </div>
-                    <span class="check-status-badge badge-{{HIDDEN_STATUS_CLASS}}">
-                        {{HIDDEN_STATUS}}
-                    </span>
-                </div>
-                
-                <p><strong>Fichiers cachés détectés:</strong> {{HIDDEN_COUNT}}</p>
-                
-                <div class="row">
-                    <div class="col-md-4">
-                        <p>/tmp: {{HIDDEN_TMP}}</p>
-                    </div>
-                    <div class="col-md-4">
-                        <p>/var/tmp: {{HIDDEN_VAR_TMP}}</p>
-                    </div>
-                    <div class="col-md-4">
-                        <p>/dev/shm: {{HIDDEN_SHM}}</p>
-                    </div>
-                </div>
-                
-                {{HIDDEN_FILES_LIST}}
-            </div>
-        </div>
-
-        <!-- Summary Chart -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-pie-chart-fill"></i> Répartition des Issues</h2>
-            <div class="chart-container">
-                <canvas id="summaryChart"></canvas>
-            </div>
-        </div>
-
-        <!-- Recommendations -->
-        <div class="dashboard-container">
-            <h2 class="section-title"><i class="bi bi-lightbulb-fill"></i> Actions Recommandées</h2>
-            
-            {{RECOMMENDATIONS}}
-        </div>
-
-        <!-- Export Buttons -->
-        <div class="dashboard-container text-center">
-            <button class="export-btn me-2" onclick="window.print()">
-                <i class="bi bi-printer"></i> Imprimer le Rapport
-            </button>
-            <button class="export-btn" onclick="exportJSON()">
-                <i class="bi bi-download"></i> Export JSON
-            </button>
-        </div>
-
-        <!-- Footer -->
-        <div class="text-center text-white mt-4">
-            <p class="mb-0">
-                <i class="bi bi-shield-check"></i> VPS Security Toolkit v{{VERSION}} | 
-                Generated: {{TIMESTAMP}} | 
-                <a href="https://github.com/TheGlitch1/vps-security-toolkit" class="text-white">GitHub</a>
-            </p>
-        </div>
+      </div>
     </div>
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- jQuery & DataTables -->
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
-    
-    <script>
-        // Summary Pie Chart
-        const summaryCtx = document.getElementById('summaryChart').getContext('2d');
-        const summaryChart = new Chart(summaryCtx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Critiques', 'Avertissements', 'Suspects', 'OK'],
-                datasets: [{
-                    data: [
-                        {{CRITICAL_COUNT}},
-                        {{WARNING_COUNT}},
-                        {{SUSPICIOUS_COUNT}},
-                        7 - ({{CRITICAL_COUNT}} + {{WARNING_COUNT}} + {{SUSPICIOUS_COUNT}})
+    <!-- Status Header -->
+    <div class="dashboard-container">
+      <div class="status-header status-{{STATUS_CLASS}}">
+        <div class="status-icon">
+          <i class="bi bi-{{STATUS_ICON}}"></i>
+        </div>
+        <div class="status-text">{{STATUS_TEXT}}</div>
+        <div class="status-subtitle">Période d'analyse: {{HOURS}} heures</div>
+
+        <div class="issue-counter">
+          <div class="counter-item">
+            <div class="counter-value">{{CRITICAL_COUNT}}</div>
+            <div class="counter-label">Critiques</div>
+          </div>
+          <div class="counter-item">
+            <div class="counter-value">{{WARNING_COUNT}}</div>
+            <div class="counter-label">Avertissements</div>
+          </div>
+          <div class="counter-item">
+            <div class="counter-value">{{SUSPICIOUS_COUNT}}</div>
+            <div class="counter-label">Suspects</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Summary -->
+    <div class="dashboard-container">
+      <div class="row text-center">
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-primary">{{SESSIONS_COUNT}}</h3>
+              <p class="text-muted mb-0">Sessions SSH</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-info">{{PROCESSES_SUSPECT}}</h3>
+              <p class="text-muted mb-0">Processus Suspects</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-warning">{{PORTS_UNUSUAL}}</h3>
+              <p class="text-muted mb-0">Ports Inhabituels</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card border-0 shadow-sm">
+            <div class="card-body">
+              <h3 class="text-danger">{{SUID_SUSPICIOUS}}</h3>
+              <p class="text-muted mb-0">SUID Suspects</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Sessions Check -->
+    <div class="dashboard-container">
+      <div class="check-card {{SESSIONS_STATUS_CLASS}}">
+        <div class="check-header">
+          <div class="check-title">
+            <i class="bi bi-person-check-fill"></i> Sessions SSH Actives
+          </div>
+          <span class="check-status-badge badge-{{SESSIONS_STATUS_CLASS}}">
+            {{SESSIONS_STATUS}}
+          </span>
+        </div>
+
+        <p><strong>Sessions détectées:</strong> {{SESSIONS_COUNT}}</p>
+
+        <div class="sessions-list">
+          {{SESSIONS_LIST}}
+        </div>
+      </div>
+    </div>
+
+    <!-- Suspicious Processes Check -->
+    <div class="dashboard-container">
+      <div class="check-card {{PROCESSES_STATUS_CLASS}}">
+        <div class="check-header">
+          <div class="check-title">
+            <i class="bi bi-cpu-fill"></i> Processus Suspects
+          </div>
+          <span class="check-status-badge badge-{{PROCESSES_STATUS_CLASS}}">
+            {{PROCESSES_STATUS}}
+          </span>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6">
+            <p><strong>Miners détectés:</strong> {{MINERS_COUNT}}</p>
+            <p><strong>High-CPU (>80%):</strong> {{HIGH_CPU_COUNT}}</p>
+          </div>
+          <div class="col-md-6">
+            <p><strong>Backdoors détectés:</strong> {{BACKDOORS_COUNT}}</p>
+            <p><strong>Total suspects:</strong> {{PROCESSES_SUSPECT}}</p>
+          </div>
+        </div>
+
+        {{PROCESSES_DETAILS}}
+      </div>
+    </div>
+
+    <!-- Listening Ports Check -->
+    <div class="dashboard-container">
+      <div class="check-card {{PORTS_STATUS_CLASS}}">
+        <div class="check-header">
+          <div class="check-title">
+            <i class="bi bi-hdd-network-fill"></i> Ports en Écoute
+          </div>
+          <span class="check-status-badge badge-{{PORTS_STATUS_CLASS}}">
+            {{PORTS_STATUS}}
+          </span>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <h5>Total: {{PORTS_TOTAL}}</h5>
+          </div>
+          <div class="col-md-6">
+            <h5 class="text-warning">Non-standard: {{PORTS_UNUSUAL}}</h5>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-sm" id="portsTable">
+            <thead class="table-dark">
+              <tr>
+                <th>Port</th>
+                <th>Proto</th>
+                <th>Service</th>
+                <th>PID/Program</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {{PORTS_ROWS}}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUID Files Check -->
+    <div class="dashboard-container">
+      <div class="check-card {{SUID_STATUS_CLASS}}">
+        <div class="check-header">
+          <div class="check-title">
+            <i class="bi bi-file-lock-fill"></i> Fichiers SUID
+          </div>
+          <span class="check-status-badge badge-{{SUID_STATUS_CLASS}}">
+            {{SUID_STATUS}}
+          </span>
+        </div>
+
+        <div class="alert alert-info">
+          <i class="bi bi-info-circle-fill"></i>
+          Les fichiers SUID peuvent être exploités pour escalader les privilèges.
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <p><strong>Total SUID:</strong> {{SUID_TOTAL}}</p>
+          </div>
+          <div class="col-md-6">
+            <p><strong class="text-danger">Suspects:</strong> {{SUID_SUSPICIOUS}}</p>
+          </div>
+        </div>
+
+        <h6>Fichiers détectés:</h6>
+        <div class="suid-list">
+          {{SUID_FILES}}
+        </div>
+      </div>
+    </div>
+
+    <!-- System Modifications Check -->
+    <div class="dashboard-container">
+      <div class="check-card {{MODIFICATIONS_STATUS_CLASS}}">
+        <div class="check-header">
+          <div class="check-title">
+            <i class="bi bi-file-earmark-diff-fill"></i> Modifications Système
+          </div>
+          <span class="check-status-badge badge-{{MODIFICATIONS_STATUS_CLASS}}">
+            {{MODIFICATIONS_STATUS}}
+          </span>
+        </div>
+
+        <p><strong>Fichiers critiques modifiés ({{HOURS}}h):</strong> {{MODIFICATIONS_COUNT}}</p>
+
+        <h6>Fichiers surveillés:</h6>
+        <div class="timeline">
+          {{MODIFICATIONS_TIMELINE}}
+        </div>
+      </div>
+    </div>
+
+    <!-- Network Connections Check -->
+    <div class="dashboard-container">
+      <div class="check-card {{NETWORK_STATUS_CLASS}}">
+        <div class="check-header">
+          <div class="check-title">
+            <i class="bi bi-diagram-3-fill"></i> Connexions Réseau
+          </div>
+          <span class="check-status-badge badge-{{NETWORK_STATUS_CLASS}}">
+            {{NETWORK_STATUS}}
+          </span>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <h5>{{CONNECTIONS_TOTAL}}</h5>
+            <p class="text-muted mb-0">Total</p>
+          </div>
+          <div class="col-md-4">
+            <h5 class="text-danger">{{CONNECTIONS_SUSPICIOUS}}</h5>
+            <p class="text-muted mb-0">Suspectes</p>
+          </div>
+          <div class="col-md-4">
+            <h5 class="text-info">{{CONNECTIONS_EXTERNAL}}</h5>
+            <p class="text-muted mb-0">Externes</p>
+          </div>
+        </div>
+
+        {{CONNECTIONS_DETAILS}}
+
+        <div class="chart-container">
+          <canvas id="connectionsChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hidden Files Check -->
+    <div class="dashboard-container">
+      <div class="check-card {{HIDDEN_STATUS_CLASS}}">
+        <div class="check-header">
+          <div class="check-title">
+            <i class="bi bi-eye-slash-fill"></i> Fichiers Cachés
+          </div>
+          <span class="check-status-badge badge-{{HIDDEN_STATUS_CLASS}}">
+            {{HIDDEN_STATUS}}
+          </span>
+        </div>
+
+        <p><strong>Fichiers cachés détectés:</strong> {{HIDDEN_COUNT}}</p>
+
+        <div class="row">
+          <div class="col-md-4">
+            <p>/tmp: {{HIDDEN_TMP}}</p>
+          </div>
+          <div class="col-md-4">
+            <p>/var/tmp: {{HIDDEN_VAR_TMP}}</p>
+          </div>
+          <div class="col-md-4">
+            <p>/dev/shm: {{HIDDEN_SHM}}</p>
+          </div>
+        </div>
+
+        {{HIDDEN_FILES_LIST}}
+      </div>
+    </div>
+
+    <!-- Summary Chart -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-pie-chart-fill"></i> Répartition des Issues</h2>
+      <div class="chart-container">
+        <canvas id="summaryChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recommendations -->
+    <div class="dashboard-container">
+      <h2 class="section-title"><i class="bi bi-lightbulb-fill"></i> Actions Recommandées</h2>
+
+      {{RECOMMENDATIONS}}
+    </div>
+
+    <!-- Export Buttons -->
+    <div class="dashboard-container text-center">
+      <button class="export-btn me-2" onclick="window.print()">
+        <i class="bi bi-printer"></i> Imprimer le Rapport
+      </button>
+      <button class="export-btn" onclick="exportJSON()">
+        <i class="bi bi-download"></i> Export JSON
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-white mt-4">
+      <p class="mb-0">
+        <i class="bi bi-shield-check"></i> VPS Security Toolkit v{{VERSION}} |
+        Generated: {{TIMESTAMP}} |
+        <a href="https://github.com/TheGlitch1/vps-security-toolkit" class="text-white">GitHub</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- jQuery & DataTables -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+
+  <script>
+    // Summary Pie Chart
+    const summaryCtx = document.getElementById('summaryChart').getContext('2d');
+    const summaryChart = new Chart(summaryCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Critiques', 'Avertissements', 'Suspects', 'OK'],
+        datasets: [{
+          data: [
+            {{ CRITICAL_COUNT }},
+        {{ WARNING_COUNT }},
+                        {{ SUSPICIOUS_COUNT }},
+    7 - ({{ CRITICAL_COUNT }} + {{ WARNING_COUNT }} + {{ SUSPICIOUS_COUNT }})
                     ],
-                    backgroundColor: [
-                        'rgba(220, 53, 69, 0.8)',
-                        'rgba(255, 193, 7, 0.8)',
-                        'rgba(13, 202, 240, 0.8)',
-                        'rgba(25, 135, 84, 0.8)'
-                    ]
+    backgroundColor: [
+      'rgba(220, 53, 69, 0.8)',
+      'rgba(255, 193, 7, 0.8)',
+      'rgba(13, 202, 240, 0.8)',
+      'rgba(25, 135, 84, 0.8)'
+    ]
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
-                    },
-                    title: {
-                        display: true,
-                        text: 'Vue d\'Ensemble des Issues',
-                        font: {
-                            size: 16,
-                            weight: 'bold'
-                        }
-                    }
-                }
-            }
-        });
-
-        // Connections Chart
-        const connCtx = document.getElementById('connectionsChart').getContext('2d');
-        const connChart = new Chart(connCtx, {
-            type: 'bar',
-            data: {
-                labels: ['Total', 'Externes', 'Suspectes'],
-                datasets: [{
-                    label: 'Connexions',
-                    data: [{{CONNECTIONS_TOTAL}}, {{CONNECTIONS_EXTERNAL}}, {{CONNECTIONS_SUSPICIOUS}}],
-                    backgroundColor: [
-                        'rgba(13, 202, 240, 0.8)',
-                        'rgba(255, 193, 7, 0.8)',
-                        'rgba(220, 53, 69, 0.8)'
-                    ],
-                    borderRadius: 10
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                }
-            }
-        });
-
-        // Initialize DataTable for ports
-        $(document).ready(function() {
-            $('#portsTable').DataTable({
-                pageLength: 10,
-                order: [[0, 'asc']],
-                language: {
-                    search: 'Rechercher:',
-                    lengthMenu: 'Afficher _MENU_ entrées',
-                    info: 'Affichage de _START_ à _END_ sur _TOTAL_ entrées',
-                    paginate: {
-                        first: 'Premier',
-                        last: 'Dernier',
-                        next: 'Suivant',
-                        previous: 'Précédent'
-                    }
-                }
-            });
-        });
-
-        // Export JSON
-        function exportJSON() {
-            window.location.href = '{{JSON_FILE_PATH}}';
+    options: {
+      responsive: true,
+        maintainAspectRatio: false,
+          plugins: {
+        legend: {
+          position: 'bottom'
+        },
+        title: {
+          display: true,
+            text: 'Vue d\'Ensemble des Issues',
+              font: {
+            size: 16,
+              weight: 'bold'
+          }
         }
-    </script>
+      }
+    }
+        });
+
+    // Connections Chart
+    const connCtx = document.getElementById('connectionsChart').getContext('2d');
+    const connChart = new Chart(connCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Total', 'Externes', 'Suspectes'],
+        datasets: [{
+          label: 'Connexions',
+          data: [{{ CONNECTIONS_TOTAL }}, {{ CONNECTIONS_EXTERNAL }}, {{ CONNECTIONS_SUSPICIOUS }}],
+    backgroundColor: [
+      'rgba(13, 202, 240, 0.8)',
+      'rgba(255, 193, 7, 0.8)',
+      'rgba(220, 53, 69, 0.8)'
+    ],
+      borderRadius: 10
+                }]
+            },
+    options: {
+      responsive: true,
+        maintainAspectRatio: false,
+          scales: {
+        y: {
+          beginAtZero: true
+        }
+      },
+      plugins: {
+        legend: {
+          display: false
+        }
+      }
+    }
+        });
+
+    // Initialize DataTable for ports
+    $(document).ready(function () {
+      $('#portsTable').DataTable({
+        pageLength: 10,
+        order: [[0, 'asc']],
+        language: {
+          search: 'Rechercher:',
+          lengthMenu: 'Afficher _MENU_ entrées',
+          info: 'Affichage de _START_ à _END_ sur _TOTAL_ entrées',
+          paginate: {
+            first: 'Premier',
+            last: 'Dernier',
+            next: 'Suivant',
+            previous: 'Précédent'
+          }
+        }
+      });
+    });
+
+    // Export JSON
+    function exportJSON() {
+      window.location.href = '{{JSON_FILE_PATH}}';
+    }
+  </script>
 </body>
+
 </html>
