@@ -1,0 +1,57 @@
+# VPS Security Toolkit - .gitignore
+
+# Log files
+*.log
+/var/log/vps-toolkit/
+
+# JSON outputs
+*.json
+!docs/examples/*.json
+
+# HTML outputs
+*.html
+!templates/*.html
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Sensitive configuration
+config/vps-toolkit.local.conf
+config/*.secret
+*.key
+*.pem
+*.crt
+
+# Email/Telegram tokens
+.env
+.env.local
+
+# Test outputs
+tests/output/
+tests/logs/
+
+# Archive files
+*.tar.gz
+*.zip
+*.tgz
+
+# IDE files
+.vscode/
+.idea/
+*.sublime-*
+
+# OS files
+Thumbs.db
+desktop.ini
+
+# Compressed logs
+*.gz
