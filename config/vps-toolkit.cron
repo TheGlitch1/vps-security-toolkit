@@ -1,0 +1,91 @@
+# VPS Security Toolkit - Cron Configuration
+# ============================================================================
+# Fichier: vps-toolkit.cron
+# Installation: sudo cp config/vps-toolkit.cron /etc/cron.d/vps-toolkit
+# ============================================================================
+
+# Configuration des variables d'environnement
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=""
+
+# Répertoire d'installation du toolkit
+TOOLKIT_DIR=/opt/vps-security-toolkit
+
+# ============================================================================
+# HEALTH CHECK - Toutes les 6 heures
+# ============================================================================
+# Vérifie l'état de santé du serveur (CPU, RAM, disque, services)
+# Horaires: 00:00, 06:00, 12:00, 18:00
+
+0 */6 * * * root ${TOOLKIT_DIR}/scripts/vps-health-check.sh --silent >> /var/log/vps-toolkit/cron.log 2>&1
+
+# ============================================================================
+# SECURITY AUDIT - Quotidien à 2h du matin
+# ============================================================================
+# Audit complet de sécurité (SSH, fail2ban, firewall, utilisateurs)
+# Envoie un email en cas de problèmes critiques
+
+0 2 * * * root ${TOOLKIT_DIR}/scripts/vps-security-audit.sh --silent --email admin@example.com >> /var/log/vps-toolkit/cron.log 2>&1
+
+# ============================================================================
+# SSH ANALYSIS - Quotidien à 3h du matin
+# ============================================================================
+# Analyse des tentatives d'intrusion SSH et patterns d'attaque
+
+0 3 * * * root ${TOOLKIT_DIR}/scripts/vps-ssh-analysis.sh --silent >> /var/log/vps-toolkit/cron.log 2>&1
+
+# ============================================================================
+# INTRUSION CHECK - Quotidien à 4h du matin
+# ============================================================================
+# Détection d'intrusion avancée (processus suspects, modifications système)
+# Alerte par email ET Telegram si intrusion détectée
+
+0 4 * * * root ${TOOLKIT_DIR}/scripts/vps-intrusion-check.sh --silent --email security@example.com >> /var/log/vps-toolkit/cron.log 2>&1
+
+# ============================================================================
+# NETTOYAGE DES LOGS - Hebdomadaire le dimanche à 5h du matin
+# ============================================================================
+# Nettoie les anciens fichiers JSON, HTML et logs selon la politique de rétention
+
+0 5 * * 0 root find /var/log/vps-toolkit/json -name "*.json" -mtime +30 -delete 2>/dev/null
+0 5 * * 0 root find /var/log/vps-toolkit/html -name "*.html" ! -name "*_latest.html" -mtime +7 -delete 2>/dev/null
+0 5 * * 0 root find /var/log/vps-toolkit -name "*.log" -mtime +7 ! -name "*.gz" -exec gzip {} \; 2>/dev/null
+0 5 * * 0 root find /var/log/vps-toolkit -name "*.log.gz" -mtime +90 -delete 2>/dev/null
+
+# ============================================================================
+# NOTES D'UTILISATION
+# ============================================================================
+#
+# 1. INSTALLATION:
+#    sudo cp config/vps-toolkit.cron /etc/cron.d/vps-toolkit
+#    sudo chmod 644 /etc/cron.d/vps-toolkit
+#    sudo systemctl restart cron
+#
+# 2. PERSONNALISATION:
+#    - Modifiez TOOLKIT_DIR si installé ailleurs que /opt
+#    - Changez les adresses email (admin@example.com, security@example.com)
+#    - Ajustez les horaires selon vos besoins
+#    - Ajoutez --telegram "TOKEN" "CHAT_ID" pour les alertes Telegram
+#
+# 3. VÉRIFICATION:
+#    sudo crontab -l -u root
+#    tail -f /var/log/vps-toolkit/cron.log
+#
+# 4. DÉSACTIVATION TEMPORAIRE:
+#    Commentez les lignes avec # au début
+#    sudo systemctl restart cron
+#
+# 5. EXEMPLES DE PERSONNALISATION:
+#
+#    # Health check plus fréquent (toutes les 2 heures):
+#    0 */2 * * * root ${TOOLKIT_DIR}/scripts/vps-health-check.sh --silent
+#
+#    # SSH analysis deux fois par jour:
+#    0 3,15 * * * root ${TOOLKIT_DIR}/scripts/vps-ssh-analysis.sh --silent
+#
+#    # Intrusion check avec Telegram:
+#    0 4 * * * root ${TOOLKIT_DIR}/scripts/vps-intrusion-check.sh --silent \
+#        --telegram "123456:ABC" "987654" >> /var/log/vps-toolkit/cron.log 2>&1
+#
+# ============================================================================

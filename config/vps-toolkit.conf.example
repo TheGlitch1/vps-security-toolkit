@@ -1,0 +1,276 @@
+# ============================================================================
+# VPS Security Toolkit - Configuration Globale
+# ============================================================================
+# Fichier: vps-toolkit.conf.example
+# Description: Configuration centralisée pour tous les scripts
+# Installation: sudo cp config/vps-toolkit.conf.example /etc/vps-toolkit.conf
+# ============================================================================
+
+# ============================================================================
+# CHEMINS ET RÉPERTOIRES
+# ============================================================================
+
+# Répertoire principal des logs
+LOG_DIR="/var/log/vps-toolkit"
+
+# Répertoire pour les sorties JSON
+JSON_DIR="${LOG_DIR}/json"
+
+# Répertoire pour les sorties HTML
+HTML_DIR="${LOG_DIR}/html"
+
+# ============================================================================
+# MODES DE VERBOSITÉ
+# ============================================================================
+
+# Niveau de verbosité par défaut
+# Valeurs possibles: silent, normal, verbose
+VERBOSITY="normal"
+
+# Activer le mode debug (affiche des informations supplémentaires)
+DEBUG=false
+
+# ============================================================================
+# FORMATS DE SORTIE
+# ============================================================================
+
+# Activer la sortie terminal (colorée)
+OUTPUT_TERMINAL=true
+
+# Activer la génération de fichiers JSON
+OUTPUT_JSON=true
+
+# Activer la génération de rapports HTML
+OUTPUT_HTML=true
+
+# ============================================================================
+# SEUILS D'ALERTE - CPU
+# ============================================================================
+
+# Seuil d'avertissement CPU (pourcentage)
+CPU_WARNING=80
+
+# Seuil critique CPU (pourcentage)
+CPU_CRITICAL=90
+
+# ============================================================================
+# SEUILS D'ALERTE - MÉMOIRE RAM
+# ============================================================================
+
+# Seuil d'avertissement RAM (pourcentage)
+RAM_WARNING=80
+
+# Seuil critique RAM (pourcentage)
+RAM_CRITICAL=90
+
+# ============================================================================
+# SEUILS D'ALERTE - SWAP
+# ============================================================================
+
+# Seuil d'avertissement SWAP (pourcentage)
+SWAP_WARNING=50
+
+# Seuil critique SWAP (pourcentage)
+SWAP_CRITICAL=80
+
+# ============================================================================
+# SEUILS D'ALERTE - ESPACE DISQUE
+# ============================================================================
+
+# Seuil d'avertissement disque (pourcentage)
+DISK_WARNING=80
+
+# Seuil critique disque (pourcentage)
+DISK_CRITICAL=90
+
+# ============================================================================
+# SEUILS D'ALERTE - LOAD AVERAGE
+# ============================================================================
+
+# Multiplicateur pour le seuil de load average warning
+# (nombre de CPU * LOAD_WARNING_MULTIPLIER)
+LOAD_WARNING_MULTIPLIER=1.5
+
+# Multiplicateur pour le seuil de load average critical
+LOAD_CRITICAL_MULTIPLIER=2.0
+
+# ============================================================================
+# SEUILS D'ALERTE - TEMPÉRATURE CPU
+# ============================================================================
+
+# Seuil d'avertissement température CPU (°C)
+TEMP_WARNING=70
+
+# Seuil critique température CPU (°C)
+TEMP_CRITICAL=85
+
+# ============================================================================
+# ALERTES EMAIL
+# ============================================================================
+
+# Activer les alertes par email
+ENABLE_EMAIL=false
+
+# Adresse email du destinataire
+# Exemple: admin@example.com
+EMAIL_TO=""
+
+# Adresse email de l'expéditeur (optionnel)
+EMAIL_FROM=""
+
+# Serveur SMTP (optionnel, si non défini utilise sendmail local)
+SMTP_SERVER=""
+SMTP_PORT="25"
+SMTP_USERNAME=""
+SMTP_PASSWORD=""
+
+# ============================================================================
+# ALERTES TELEGRAM
+# ============================================================================
+
+# Activer les alertes Telegram
+ENABLE_TELEGRAM=false
+
+# Token du bot Telegram
+# Obtenu via @BotFather : https://t.me/BotFather
+# Format: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz
+TELEGRAM_BOT_TOKEN=""
+
+# ID du chat Telegram
+# Obtenu via: https://api.telegram.org/bot<TOKEN>/getUpdates
+# Peut être un ID utilisateur ou de groupe
+TELEGRAM_CHAT_ID=""
+
+# ============================================================================
+# ALERTES SLACK (Futur)
+# ============================================================================
+
+# Activer les alertes Slack
+ENABLE_SLACK=false
+
+# Webhook URL Slack
+SLACK_WEBHOOK_URL=""
+
+# ============================================================================
+# SSH ANALYSIS - CONFIGURATION
+# ============================================================================
+
+# Fichier de log SSH à analyser
+AUTH_LOG="/var/log/auth.log"
+
+# Nombre maximum de lignes à analyser dans auth.log
+# 0 = analyser tout le fichier
+# Recommandé: 100000 pour les serveurs avec beaucoup de logs
+MAX_LOG_LINES=100000
+
+# Activer la géolocalisation des IPs (nécessite whois)
+ENABLE_GEOLOCATION=true
+
+# Timeout pour les requêtes whois (secondes)
+WHOIS_TIMEOUT=5
+
+# Nombre de top IPs à afficher
+TOP_IPS_COUNT=20
+
+# Nombre de top utilisateurs à afficher
+TOP_USERS_COUNT=15
+
+# ============================================================================
+# INTRUSION DETECTION - CONFIGURATION
+# ============================================================================
+
+# Processus suspects à détecter (noms séparés par des espaces)
+SUSPICIOUS_PROCESSES="xmrig minerd cpuminer ethminer cgminer bfgminer ncat socat"
+
+# Répertoires temporaires à surveiller
+TEMP_DIRS="/tmp /var/tmp /dev/shm"
+
+# Ports légitimes (ne pas alerter sur ces ports)
+# Format: port1,port2,port3
+LEGITIMATE_PORTS="22,80,443,3306,5432,6379,27017"
+
+# Vérifier les fichiers SUID/SGID
+CHECK_SUID_SGID=true
+
+# ============================================================================
+# SECURITY AUDIT - CONFIGURATION
+# ============================================================================
+
+# Score minimum acceptable (0-100)
+SECURITY_SCORE_MINIMUM=70
+
+# Alerter si score inférieur au minimum
+ALERT_ON_LOW_SCORE=true
+
+# ============================================================================
+# NETTOYAGE AUTOMATIQUE DES LOGS
+# ============================================================================
+
+# Activer le nettoyage automatique
+AUTO_CLEANUP=true
+
+# Conserver les JSON pendant X jours
+JSON_RETENTION_DAYS=30
+
+# Conserver les HTML pendant X jours
+HTML_RETENTION_DAYS=7
+
+# Conserver les logs texte compressés pendant X jours
+LOG_RETENTION_DAYS=90
+
+# ============================================================================
+# PERFORMANCE
+# ============================================================================
+
+# Timeout maximum pour l'exécution d'un script (secondes)
+# 0 = pas de limite
+SCRIPT_TIMEOUT=300
+
+# Activer le cache pour les résultats whois
+ENABLE_WHOIS_CACHE=true
+
+# Durée de validité du cache whois (secondes)
+WHOIS_CACHE_TTL=3600
+
+# ============================================================================
+# FONCTIONNALITÉS AVANCÉES
+# ============================================================================
+
+# Activer la génération de graphiques dans les rapports HTML
+ENABLE_CHARTS=true
+
+# Activer l'auto-refresh des pages HTML (secondes)
+# 0 = désactivé
+HTML_AUTO_REFRESH=300
+
+# Activer la compression des anciens logs
+COMPRESS_OLD_LOGS=true
+
+# ============================================================================
+# INTÉGRATIONS EXTERNES (Futur)
+# ============================================================================
+
+# Webhook générique pour intégrations personnalisées
+WEBHOOK_URL=""
+WEBHOOK_METHOD="POST"
+WEBHOOK_HEADERS=""
+
+# Envoyer les données vers une base de données
+ENABLE_DATABASE=false
+DB_TYPE="sqlite"  # sqlite, mysql, postgresql
+DB_PATH="/var/lib/vps-toolkit/database.db"
+DB_HOST=""
+DB_PORT=""
+DB_NAME=""
+DB_USER=""
+DB_PASSWORD=""
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# 1. Les valeurs peuvent être surchargées par arguments en ligne de commande
+# 2. Les valeurs sensibles (tokens, mots de passe) ne doivent JAMAIS être
+#    committées dans git
+# 3. Pour une configuration locale, créez: /etc/vps-toolkit.conf
+# 4. La priorité est: arguments CLI > /etc/vps-toolkit.conf > config/vps-toolkit.conf.example
+# ============================================================================
