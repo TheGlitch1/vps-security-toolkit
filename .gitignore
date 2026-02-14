@@ -1,5 +1,11 @@
 # VPS Security Toolkit - .gitignore
 
+# Internal planning/development files
+plan-*.md
+*.prompt.md
+PUBLISH.md
+notes/
+
 # Log files
 *.log
 /var/log/vps-toolkit/

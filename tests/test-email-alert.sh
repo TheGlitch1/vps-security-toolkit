@@ -1,6 +1,16 @@
 #!/bin/bash
 
-# Script de test pour forcer une alerte email
+# Script de test pour les alertes email
+# Usage: ./test-email-alert.sh YOUR_EMAIL@example.com
+
+# Vérifier que l'email est fourni
+if [ -z "$1" ]; then
+    echo "❌ Erreur: Veuillez fournir une adresse email"
+    echo "Usage: sudo $0 YOUR_EMAIL@example.com"
+    exit 1
+fi
+
+EMAIL_ADDRESS="$1"
 
 cd /home/theglitch/tools/vps-security-toolkit
 
@@ -60,7 +70,7 @@ source /home/theglitch/tools/vps-security-toolkit/scripts/shared-functions.sh
 
 # Configuration
 ENABLE_EMAIL=true
-EMAIL_TO="d.vyassine@outlook.com"
+EMAIL_TO="$EMAIL_ADDRESS"
 VERSION="1.0.0"
 SCRIPT_NAME="vps-health-check-TEST"
 TIMESTAMP=$(date +"%Y-%m-%d_%H-%M-%S")
@@ -94,7 +104,7 @@ Le système fonctionne correctement.
 send_email_alert "WARNING - Test d'alerte" "$ALERT_MESSAGE"
 
 if [ $? -eq 0 ]; then
-    echo "✅ Email d'alerte envoyé avec succès à d.vyassine@outlook.com"
+    echo "✅ Email d'alerte envoyé avec succès à $EMAIL_ADDRESS"
 else
     echo "❌ Échec de l'envoi de l'email"
 fi
@@ -105,6 +115,6 @@ sudo /tmp/test-email.sh
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "📧 Email de test envoyé à: d.vyassine@outlook.com"
+echo "📧 Email de test envoyé à: $EMAIL_ADDRESS"
 echo "📫 Vérifiez votre boîte email (et le dossier spam)"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
