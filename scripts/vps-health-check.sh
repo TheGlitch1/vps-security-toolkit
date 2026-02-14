@@ -155,16 +155,35 @@ get_service_status() {
     for service in "${services[@]}"; do
         local status="unknown"
         local is_active=false
+        local service_name="$service"
         
-        if systemctl list-unit-files | grep -q "^${service}.service"; then
-            if systemctl is-active --quiet "$service" 2>/dev/null; then
+        # Sur Ubuntu, SSH peut s'appeler 'ssh' au lieu de 'sshd'
+        if [[ "$service" == "sshd" ]]; then
+            if systemctl list-unit-files | grep -q "^ssh.service"; then
+                service_name="ssh"
+            fi
+        fi
+        
+        # Vérifier si le service existe
+        if systemctl list-unit-files 2>/dev/null | grep -q "^${service_name}.service\|^${service_name}$"; then
+            if systemctl is-active --quiet "$service_name" 2>/dev/null; then
                 status="active"
                 is_active=true
             else
                 status="inactive"
             fi
-        elif [[ "$service" == "fail2ban" ]]; then
-            status="not_installed"
+        else
+            # Service non trouvé
+            if [[ "$service" == "fail2ban" ]]; then
+                # Vérifier si fail2ban est installé mais pas en tant que service systemd
+                if command -v fail2ban-client &>/dev/null; then
+                    status="inactive"
+                else
+                    status="not_installed"
+                fi
+            else
+                status="not_found"
+            fi
         fi
         
         [[ "$first" == "false" ]] && service_info+=","
@@ -400,10 +419,14 @@ display_terminal_output() {
     # CPU
     print_section "💻 CPU"
     local cpu_count=$(echo "$json_content" | grep -oP '(?<="count":)\d+' | head -1)
-    local cpu_temp=$(echo "$json_content" | grep -oP '(?<="temperature": ")[^"]+')
+    local cpu_temp=$(echo "$json_content" | grep -oP '(?<="temperature":")[^"]+')
     print_table_row "Nombre de cœurs" "$cpu_count" "INFO"
     print_table_row "Utilisation" "${cpu_usage}%" "$(get_status_from_value $cpu_usage $CPU_WARNING $CPU_CRITICAL)"
-    print_table_row "Température" "${cpu_temp}°C" "INFO"
+    if [[ "$cpu_temp" != "N/A" ]]; then
+        print_table_row "Température" "${cpu_temp}°C" "INFO"
+    else
+        print_table_row "Température" "Non disponible" "INFO"
+    fi
     print_progress_bar "$cpu_usage" "100"
     echo
     
@@ -424,36 +447,57 @@ display_terminal_output() {
     
     # Disques
     print_section "💾 Espace Disque"
-    while IFS= read -r line; do
-        local mountpoint=$(echo "$line" | grep -oP '(?<="mountpoint": ")[^"]+')
-        local percent=$(echo "$line" | grep -oP '(?<="percent": )\d+')
-        local used=$(echo "$line" | grep -oP '(?<="used": ")[^"]+')
-        local size=$(echo "$line" | grep -oP '(?<="size": ")[^"]+')
-        print_table_row "$mountpoint" "${used} / ${size} (${percent}%)" "$(get_status_from_value $percent $DISK_WARNING $DISK_CRITICAL)"
-        print_progress_bar "$percent" "100"
-    done < <(echo "$json_content" | grep -oP '\{"filesystem"[^}]+\}')
+    # Parser les disques du JSON
+    local disk_count=$(echo "$json_content" | grep -o '"filesystem"' | wc -l)
+    if [[ $disk_count -gt 0 ]]; then
+        # Extraire chaque disque (méthode plus robuste)
+        local disk_data=$(echo "$json_content" | grep -A5 '"disks":' | grep -oP '\{"filesystem":[^}]+\}')
+        
+        while IFS= read -r disk_line; do
+            if [[ -n "$disk_line" ]]; then
+                local filesystem=$(echo "$disk_line" | grep -oP '(?<="filesystem":")[^"]+' || echo "N/A")
+                local mountpoint=$(echo "$disk_line" | grep -oP '(?<="mountpoint":")[^"]+' || echo "N/A")
+                local percent=$(echo "$disk_line" | grep -oP '(?<="percent":)\d+' || echo "0")
+                local used=$(echo "$disk_line" | grep -oP '(?<="used":")[^"]+' || echo "N/A")
+                local size=$(echo "$disk_line" | grep -oP '(?<="size":")[^"]+' || echo "N/A")
+                
+                print_table_row "$mountpoint" "${used} / ${size} (${percent}%)" "$(get_status_from_value $percent $DISK_WARNING $DISK_CRITICAL)"
+                print_progress_bar "$percent" "100"
+            fi
+        done < <(echo "$json_content" | grep -oP '\{"filesystem":"[^}]+\}')
+    else
+        print_table_row "Aucun disque" "N/A" "INFO"
+    fi
     echo
     
     # Services
     print_section "🔧 Services Critiques"
+    # Parser les services du JSON
+    local service_data=$(echo "$json_content" | grep -A10 '"services":')
+    
     while IFS= read -r service_line; do
-        local service_name=$(echo "$service_line" | grep -oP '(?<="name": ")[^"]+')
-        local service_status=$(echo "$service_line" | grep -oP '(?<="status": ")[^"]+')
-        local display_status="$service_status"
-        local status_type="INFO"
-        
-        if [[ "$service_status" == "active" ]]; then
-            display_status="${GREEN}✓ Active${NC}"
-            status_type="OK"
-        elif [[ "$service_status" == "inactive" ]]; then
-            display_status="${RED}✗ Inactive${NC}"
-            status_type="CRITICAL"
-        elif [[ "$service_status" == "not_installed" ]]; then
-            display_status="${YELLOW}⚠ Non installé${NC}"
-            status_type="WARNING"
+        if [[ -n "$service_line" ]]; then
+            local service_name=$(echo "$service_line" | grep -oP '(?<="name":")[^"]+' || echo "unknown")
+            local service_status=$(echo "$service_line" | grep -oP '(?<="status":")[^"]+' || echo "unknown")
+            local display_status="$service_status"
+            local status_type="INFO"
+            
+            if [[ "$service_status" == "active" ]]; then
+                display_status="✓ Active"
+                status_type="OK"
+            elif [[ "$service_status" == "inactive" ]]; then
+                display_status="✗ Inactive"
+                status_type="CRITICAL"
+            elif [[ "$service_status" == "not_installed" ]]; then
+                display_status="⚠ Non installé"
+                status_type="WARNING"
+            elif [[ "$service_status" == "not_found" ]]; then
+                display_status="✗ Non trouvé"
+                status_type="CRITICAL"
+            fi
+            
+            print_table_row "$service_name" "$display_status" "$status_type"
         fi
-        
-        echo -e "  $service_name: $display_status"
     done < <(echo "$json_content" | grep -oP '\{"name":"[^}]+\}')
     echo
     

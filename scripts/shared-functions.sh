@@ -580,8 +580,8 @@ generate_html_footer() {
     
     <script>
         // Initialize DataTables
-        $(document).ready(function() {
-            $('.data-table').DataTable({
+        \$(document).ready(function() {
+            \$('.data-table').DataTable({
                 pageLength: 25,
                 order: [[0, 'desc']],
                 language: {
