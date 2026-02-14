@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VPS Security Audit - {{HOSTNAME}}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --excellent: #28a745;
+            --good: #17a2b8;
+            --warning: #ffc107;
+            --critical: #dc3545;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            min-height: 100vh;
+            padding: 2rem 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        
+        .dashboard-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .score-circle {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            margin: 0 auto;
+            position: relative;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .score-excellent { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+        .score-good { background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); }
+        .score-warning { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); }
+        .score-critical { background: linear-gradient(135deg, #f85032 0%, #e73827 100%); }
+        
+        .score-value {
+            font-size: 4rem;
+            font-weight: 700;
+            color: white;
+            line-height: 1;
+        }
+        
+        .score-total {
+            font-size: 1.5rem;
+            color: rgba(255,255,255,0.9);
+            font-weight: 500;
+        }
+        
+        .score-label {
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: white;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+        .audit-card {
+            border-left: 4px solid #1e3c72;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            background: #f8f9fa;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .audit-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .audit-card.excellent { border-left-color: var(--excellent); }
+        .audit-card.good { border-left-color: var(--good); }
+        .audit-card.warning { border-left-color: var(--warning); }
+        .audit-card.critical { border-left-color: var(--critical); }
+        
+        .audit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .audit-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        .audit-score {
+            font-size: 2rem;
+            font-weight: 700;
+            padding: 0.5rem 1.5rem;
+            border-radius: 15px;
+            color: white;
+        }
+        
+        .check-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .check-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+        
+        .check-pass { color: var(--excellent); }
+        .check-fail { color: var(--critical); }
+        .check-warning { color: var(--warning); }
+        
+        .recommendation {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            margin: 1rem 0;
+        }
+        
+        .recommendation h5 {
+            font-weight: 700;
+            margin-bottom: 1rem;
+        }
+        
+        .recommendation ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+        
+        .recommendation li {
+            margin: 0.5rem 0;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 2rem 0 1rem 0;
+            color: #333;
+            border-left: 4px solid #1e3c72;
+            padding-left: 1rem;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin: 2rem 0;
+        }
+        
+        .metric-badge {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin: 0.25rem;
+        }
+        
+        .badge-excellent { background-color: rgba(40, 167, 69, 0.1); color: var(--excellent); }
+        .badge-good { background-color: rgba(23, 162, 184, 0.1); color: var(--good); }
+        .badge-warning { background-color: rgba(255, 193, 7, 0.1); color: var(--warning); }
+        .badge-critical { background-color: rgba(220, 53, 69, 0.1); color: var(--critical); }
+        
+        .progress-custom {
+            height: 30px;
+            border-radius: 15px;
+            background-color: rgba(0,0,0,0.1);
+        }
+        
+        .export-btn {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .export-btn:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="dashboard-container">
+            <div class="row align-items-center">
+                <div class="col-md-9">
+                    <h1 class="display-4 mb-0">
+                        <i class="bi bi-shield-lock-fill text-primary"></i> Security Audit
+                    </h1>
+                    <p class="text-muted mb-0">Analyse de sécurité complète - {{HOSTNAME}}</p>
+                </div>
+                <div class="col-md-3">
+                    <p class="mb-0 text-end">
+                        <i class="bi bi-calendar3"></i> {{TIMESTAMP}}<br>
+                        <i class="bi bi-server"></i> Version {{VERSION}}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Score -->
+        <div class="dashboard-container text-center">
+            <h2 class="section-title text-center border-0 mb-4">Score Global de Sécurité</h2>
+            
+            <div class="score-circle score-{{SCORE_CLASS}}">
+                <div class="score-value">{{SCORE}}</div>
+                <div class="score-total">/100</div>
+            </div>
+            <div class="score-label mt-3 text-{{SCORE_TEXT_CLASS}}">{{SCORE_LABEL}}</div>
+            
+            <div class="row mt-5">
+                <div class="col-md-3">
+                    <h4 class="text-success">{{SCORE_SSH}}</h4>
+                    <p class="text-muted">SSH Config</p>
+                </div>
+                <div class="col-md-3">
+                    <h4 class="text-info">{{SCORE_FAIL2BAN}}</h4>
+                    <p class="text-muted">Fail2ban</p>
+                </div>
+                <div class="col-md-3">
+                    <h4 class="text-warning">{{SCORE_FIREWALL}}</h4>
+                    <p class="text-muted">Firewall</p>
+                </div>
+                <div class="col-md-3">
+                    <h4 class="text-primary">{{SCORE_UPDATES}}</h4>
+                    <p class="text-muted">Updates</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Radar Chart -->
+        <div class="dashboard-container">
+            <h2 class="section-title"><i class="bi bi-radar"></i> Vue d'Ensemble</h2>
+            <div class="chart-container">
+                <canvas id="radarChart"></canvas>
+            </div>
+        </div>
+
+        <!-- SSH Configuration Audit -->
+        <div class="dashboard-container">
+            <div class="audit-card {{SSH_CLASS}}">
+                <div class="audit-header">
+                    <div class="audit-title">
+                        <i class="bi bi-terminal-fill"></i> Configuration SSH
+                    </div>
+                    <div class="audit-score" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        {{SCORE_SSH}}/100
+                    </div>
+                </div>
+                
+                <div class="checks-container">
+                    {{SSH_CHECKS}}
+                </div>
+                
+                {{SSH_RECOMMENDATIONS}}
+            </div>
+        </div>
+
+        <!-- Fail2ban Audit -->
+        <div class="dashboard-container">
+            <div class="audit-card {{FAIL2BAN_CLASS}}">
+                <div class="audit-header">
+                    <div class="audit-title">
+                        <i class="bi bi-shield-check"></i> Fail2ban Protection
+                    </div>
+                    <div class="audit-score" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        {{SCORE_FAIL2BAN}}/100
+                    </div>
+                </div>
+                
+                <div class="checks-container">
+                    {{FAIL2BAN_CHECKS}}
+                </div>
+                
+                {{FAIL2BAN_RECOMMENDATIONS}}
+            </div>
+        </div>
+
+        <!-- Firewall Audit -->
+        <div class="dashboard-container">
+            <div class="audit-card {{FIREWALL_CLASS}}">
+                <div class="audit-header">
+                    <div class="audit-title">
+                        <i class="bi bi-fire"></i> Firewall Configuration
+                    </div>
+                    <div class="audit-score" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        {{SCORE_FIREWALL}}/100
+                    </div>
+                </div>
+                
+                <div class="checks-container">
+                    {{FIREWALL_CHECKS}}
+                </div>
+                
+                {{FIREWALL_RECOMMENDATIONS}}
+            </div>
+        </div>
+
+        <!-- System Updates Audit -->
+        <div class="dashboard-container">
+            <div class="audit-card {{UPDATES_CLASS}}">
+                <div class="audit-header">
+                    <div class="audit-title">
+                        <i class="bi bi-arrow-repeat"></i> System Updates
+                    </div>
+                    <div class="audit-score" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        {{SCORE_UPDATES}}/100
+                    </div>
+                </div>
+                
+                <div class="checks-container">
+                    <div class="check-item">
+                        <i class="bi bi-info-circle-fill check-icon" style="color: #17a2b8;"></i>
+                        <div>
+                            <strong>Updates disponibles:</strong> {{UPDATES_COUNT}}<br>
+                            <strong>Security updates:</strong> {{SECURITY_UPDATES_COUNT}}<br>
+                            <strong>Reboot requis:</strong> {{REBOOT_REQUIRED}}
+                        </div>
+                    </div>
+                </div>
+                
+                {{UPDATES_RECOMMENDATIONS}}
+            </div>
+        </div>
+
+        <!-- Users Audit -->
+        <div class="dashboard-container">
+            <div class="audit-card {{USERS_CLASS}}">
+                <div class="audit-header">
+                    <div class="audit-title">
+                        <i class="bi bi-people-fill"></i> User Accounts Security
+                    </div>
+                    <div class="audit-score" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">
+                        {{SCORE_USERS}}/100
+                    </div>
+                </div>
+                
+                <div class="checks-container">
+                    {{USERS_CHECKS}}
+                </div>
+                
+                {{USERS_RECOMMENDATIONS}}
+            </div>
+        </div>
+
+        <!-- Overall Recommendations -->
+        <div class="dashboard-container">
+            <h2 class="section-title"><i class="bi bi-lightbulb-fill"></i> Recommandations Prioritaires</h2>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="recommendation">
+                        <h5><i class="bi bi-exclamation-triangle-fill"></i> Actions Critiques</h5>
+                        <ul>
+                            {{CRITICAL_RECOMMENDATIONS}}
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="recommendation">
+                        <h5><i class="bi bi-info-circle-fill"></i> Améliorations Suggérées</h5>
+                        <ul>
+                            {{IMPROVEMENT_RECOMMENDATIONS}}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Score Breakdown Chart -->
+        <div class="dashboard-container">
+            <h2 class="section-title"><i class="bi bi-bar-chart-fill"></i> Détails des Scores</h2>
+            <div class="chart-container">
+                <canvas id="scoreChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Export Buttons -->
+        <div class="dashboard-container text-center">
+            <button class="export-btn me-2" onclick="window.print()">
+                <i class="bi bi-printer"></i> Imprimer le Rapport
+            </button>
+            <button class="export-btn" onclick="exportJSON()">
+                <i class="bi bi-download"></i> Export JSON
+            </button>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-white mt-4">
+            <p class="mb-0">
+                <i class="bi bi-shield-check"></i> VPS Security Toolkit v{{VERSION}} | 
+                Generated: {{TIMESTAMP}} | 
+                <a href="https://github.com/TheGlitch1/vps-security-toolkit" class="text-white">GitHub</a>
+            </p>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Radar Chart
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        const radarChart = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['SSH Config', 'Fail2ban', 'Firewall', 'Updates', 'Users'],
+                datasets: [{
+                    label: 'Score de Sécurité',
+                    data: [{{SCORE_SSH}}, {{SCORE_FAIL2BAN}}, {{SCORE_FIREWALL}}, {{SCORE_UPDATES}}, {{SCORE_USERS}}],
+                    backgroundColor: 'rgba(30, 60, 114, 0.2)',
+                    borderColor: 'rgba(30, 60, 114, 1)',
+                    borderWidth: 3,
+                    pointBackgroundColor: 'rgba(30, 60, 114, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(30, 60, 114, 1)',
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            stepSize: 20,
+                            callback: function(value) {
+                                return value;
+                            }
+                        },
+                        pointLabels: {
+                            font: {
+                                size: 14,
+                                weight: 'bold'
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Analyse Radar de Sécurité',
+                        font: {
+                            size: 18,
+                            weight: 'bold'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Score Bar Chart
+        const scoreCtx = document.getElementById('scoreChart').getContext('2d');
+        const scoreChart = new Chart(scoreCtx, {
+            type: 'bar',
+            data: {
+                labels: ['SSH Config', 'Fail2ban', 'Firewall', 'Updates', 'Users'],
+                datasets: [{
+                    label: 'Score',
+                    data: [{{SCORE_SSH}}, {{SCORE_FAIL2BAN}}, {{SCORE_FIREWALL}}, {{SCORE_UPDATES}}, {{SCORE_USERS}}],
+                    backgroundColor: [
+                        'rgba(102, 126, 234, 0.8)',
+                        'rgba(249, 93, 251, 0.8)',
+                        'rgba(79, 172, 254, 0.8)',
+                        'rgba(67, 233, 123, 0.8)',
+                        'rgba(250, 112, 154, 0.8)'
+                    ],
+                    borderRadius: 10,
+                    barThickness: 50
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function(value) {
+                                return value + '/100';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Scores par Catégorie',
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        }
+                    }
+                }
+            }
+        });
+
+        // Export JSON
+        function exportJSON() {
+            window.location.href = '{{JSON_FILE_PATH}}';
+        }
+    </script>
+</body>
+</html>
