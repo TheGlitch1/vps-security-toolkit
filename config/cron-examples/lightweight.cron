@@ -1,0 +1,29 @@
+# Configuration Cron - Serveur Léger
+# Placez ce fichier dans /etc/cron.d/vps-security-toolkit
+
+# Configuration légère pour VPS à ressources limitées
+# Monitoring moins fréquent, désactivation de certaines options
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=""
+
+# Variables - À PERSONNALISER
+VPS_TOOLKIT_PATH=/path/to/vps-security-toolkit
+ADMIN_EMAIL=admin@example.com
+
+# Health Check - Toutes les 30 minutes
+*/30 * * * * root $VPS_TOOLKIT_PATH/scripts/vps-health-check.sh --silent 2>&1 | logger -t vps-health
+
+# Security Audit - Quotidien à 2h00
+0 2 * * * root $VPS_TOOLKIT_PATH/scripts/vps-security-audit.sh --silent --email $ADMIN_EMAIL 2>&1 | logger -t vps-security
+
+# SSH Analysis - Quotidien à 3h00 (sans géolocalisation pour économiser ressources)
+0 3 * * * root $VPS_TOOLKIT_PATH/scripts/vps-ssh-analysis.sh --period 24h --silent --no-geo 2>&1 | logger -t vps-ssh
+
+# Intrusion Check - 3 fois par jour (2h, 10h, 18h)
+0 2,10,18 * * * root $VPS_TOOLKIT_PATH/scripts/vps-intrusion-check.sh --silent --email $ADMIN_EMAIL 2>&1 | logger -t vps-intrusion
+
+# Nettoyage hebdomadaire - Dimanche à 3h00 (garde seulement 15 jours)
+0 3 * * 0 root find /var/log/vps-toolkit -name "*.json" -mtime +15 -delete 2>&1 | logger -t vps-cleanup
+0 3 * * 0 root find /var/log/vps-toolkit -name "*.html" -mtime +15 -delete 2>&1 | logger -t vps-cleanup

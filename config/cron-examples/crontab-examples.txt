@@ -1,0 +1,199 @@
+# Exemples de Configuration Cron pour VPS Security Toolkit
+
+# ┌───────────── minute (0 - 59)
+# │ ┌───────────── heure (0 - 23)
+# │ │ ┌───────────── jour du mois (1 - 31)
+# │ │ │ ┌───────────── mois (1 - 12)
+# │ │ │ │ ┌───────────── jour de la semaine (0 - 6) (Dimanche = 0)
+# │ │ │ │ │
+# * * * * * commande à exécuter
+
+# ==============================================================================
+# CONFIGURATION MINIMALE (Recommandée pour débuter)
+# ==============================================================================
+
+# Health Check - Toutes les 15 minutes
+*/15 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent 2>&1 | logger -t vps-health
+
+# Security Audit - Quotidien à 2h00
+0 2 * * * /path/to/vps-security-toolkit/scripts/vps-security-audit.sh --silent 2>&1 | logger -t vps-security
+
+# SSH Analysis - Une fois par jour à 3h00
+0 3 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent 2>&1 | logger -t vps-ssh
+
+# Intrusion Check - Toutes les heures
+0 * * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --silent 2>&1 | logger -t vps-intrusion
+
+# ==============================================================================
+# CONFIGURATION ÉQUILIBRÉE (Recommandée pour production)
+# ==============================================================================
+
+# Health Check - Toutes les 5 minutes
+*/5 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent 2>&1 | logger -t vps-health
+
+# Security Audit - Quotidien à 2h00
+0 2 * * * /path/to/vps-security-toolkit/scripts/vps-security-audit.sh --silent 2>&1 | logger -t vps-security
+
+# SSH Analysis - Toutes les 6 heures
+0 */6 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent 2>&1 | logger -t vps-ssh
+
+# Intrusion Check - Toutes les 30 minutes
+*/30 * * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --silent 2>&1 | logger -t vps-intrusion
+
+# Nettoyage hebdomadaire - Dimanche à 3h00
+0 3 * * 0 find /var/log/vps-toolkit/json -name "*.json" -mtime +30 -delete
+0 3 * * 0 find /var/log/vps-toolkit/html -name "*.html" -mtime +30 -delete
+
+# ==============================================================================
+# CONFIGURATION INTENSIVE (Pour serveurs critiques)
+# ==============================================================================
+
+# Health Check - Toutes les 2 minutes
+*/2 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent 2>&1 | logger -t vps-health
+
+# Security Audit - 2 fois par jour (2h00 et 14h00)
+0 2,14 * * * /path/to/vps-security-toolkit/scripts/vps-security-audit.sh --silent 2>&1 | logger -t vps-security
+
+# SSH Analysis - Toutes les 3 heures
+0 */3 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent 2>&1 | logger -t vps-ssh
+
+# Intrusion Check - Toutes les 15 minutes
+*/15 * * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --silent 2>&1 | logger -t vps-intrusion
+
+# Nettoyage quotidien - 4h00
+0 4 * * * find /var/log/vps-toolkit/json -name "*.json" -mtime +30 -delete
+0 4 * * * find /var/log/vps-toolkit/html -name "*.html" -mtime +30 -delete
+
+# ==============================================================================
+# CONFIGURATION LÉGÈRE (Pour VPS à ressources limitées)
+# ==============================================================================
+
+# Health Check - Toutes les 30 minutes
+*/30 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent 2>&1 | logger -t vps-health
+
+# Security Audit - Quotidien à 2h00
+0 2 * * * /path/to/vps-security-toolkit/scripts/vps-security-audit.sh --silent 2>&1 | logger -t vps-security
+
+# SSH Analysis - Quotidien à 3h00
+0 3 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent --no-geo 2>&1 | logger -t vps-ssh
+
+# Intrusion Check - 3 fois par jour (2h, 10h, 18h)
+0 2,10,18 * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --silent 2>&1 | logger -t vps-intrusion
+
+# Nettoyage hebdomadaire - Dimanche à 3h00
+0 3 * * 0 find /var/log/vps-toolkit -name "*.json" -mtime +15 -delete
+0 3 * * 0 find /var/log/vps-toolkit -name "*.html" -mtime +15 -delete
+
+# ==============================================================================
+# EXEMPLES SPÉCIFIQUES
+# ==============================================================================
+
+# ----- Alertes Email avec chaque exécution -----
+*/5 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent --email admin@example.com
+
+# ----- Alertes Telegram avec chaque exécution -----
+*/5 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent --telegram "BOT_TOKEN" "CHAT_ID"
+
+# ----- SSH Analysis sur plusieurs périodes -----
+# Analyse 24h toutes les 6 heures
+0 */6 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent
+
+# Analyse 7 jours quotidienne à 4h00
+0 4 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 7d --silent
+
+# Analyse complète hebdomadaire (dimanche 5h00)
+0 5 * * 0 /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period all --silent
+
+# ----- Intrusion Check avec différentes périodes -----
+# Check 24h toutes les 30 minutes
+*/30 * * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --hours 24 --silent
+
+# Check 48h quotidien à 2h00
+0 2 * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --hours 48 --silent
+
+# ----- Redirection des outputs -----
+# Enregistrer output dans fichier log
+*/5 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent >> /var/log/vps-health-cron.log 2>&1
+
+# Ignorer complètement les outputs
+*/5 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent > /dev/null 2>&1
+
+# Envoyer vers syslog avec tag
+*/5 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent 2>&1 | logger -t vps-health
+
+# ----- Gestion avancée des logs -----
+# Nettoyage des logs JSON de plus de 30 jours
+0 3 * * 0 find /var/log/vps-toolkit/json -name "*.json" -mtime +30 -delete
+
+# Nettoyage des logs HTML de plus de 15 jours
+0 3 * * 0 find /var/log/vps-toolkit/html -name "*.html" -mtime +15 -delete
+
+# Compression des vieux logs (plus de 7 jours)
+0 4 * * 0 find /var/log/vps-toolkit -name "*.json" -mtime +7 -exec gzip {} \;
+
+# Archivage mensuel (1er du mois à 5h00)
+0 5 1 * * tar -czf /backup/vps-toolkit-$(date +\%Y-\%m).tar.gz /var/log/vps-toolkit/
+
+# ----- Exécution avec variables d'environnement -----
+*/5 * * * * EMAIL_TO=admin@example.com /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent
+
+# ----- Notifications conditionnelles -----
+# N'envoyer email que si le script retourne une erreur
+*/5 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent || echo "Health check failed!" | mail -s "VPS Alert" admin@example.com
+
+# ==============================================================================
+# CONFIGURATION PAR PROFIL DE SERVEUR
+# ==============================================================================
+
+# ----- Serveur Web (Trafic public important) -----
+*/5 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent
+*/15 * * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --silent
+0 */4 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent
+0 2 * * * /path/to/vps-security-toolkit/scripts/vps-security-audit.sh --silent
+
+# ----- Serveur Base de Données (Performance critique) -----
+*/10 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent
+0 */6 * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --silent
+0 3 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent --no-geo
+0 2 * * * /path/to/vps-security-toolkit/scripts/vps-security-audit.sh --silent
+
+# ----- Serveur Dev/Test (Monitoring léger) -----
+0 * * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent
+0 6,18 * * * /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --silent
+0 3 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent --no-geo
+0 2 * * * /path/to/vps-security-toolkit/scripts/vps-security-audit.sh --silent
+
+# ----- Serveur Backup (Minimal) -----
+0 */6 * * * /path/to/vps-security-toolkit/scripts/vps-health-check.sh --silent
+0 2 * * * /path/to/vps-security-toolkit/scripts/vps-security-audit.sh --silent
+0 3 * * * /path/to/vps-security-toolkit/scripts/vps-ssh-analysis.sh --period 24h --silent --no-geo
+0 4 * * 0 /path/to/vps-security-toolkit/scripts/vps-intrusion-check.sh --silent
+
+# ==============================================================================
+# NOTES IMPORTANTES
+# ==============================================================================
+
+# 1. Remplacez /path/to/vps-security-toolkit par le chemin réel du projet
+# 2. Utilisez --silent pour éviter les emails de cron en cas de sortie stdout
+# 3. logger -t permet d'envoyer les logs vers syslog avec un tag
+# 4. Testez vos cron jobs manuellement avant de les activer
+# 5. Surveillez /var/log/syslog pour vérifier l'exécution des cron jobs
+# 6. Ajustez les fréquences selon vos besoins et ressources
+
+# ==============================================================================
+# INSTALLATION
+# ==============================================================================
+
+# Pour installer ces cron jobs :
+# 1. Choisir la configuration adaptée à vos besoins
+# 2. Remplacer /path/to/vps-security-toolkit par le chemin réel
+# 3. Éditer le crontab : sudo crontab -e
+# 4. Coller les lignes choisies
+# 5. Sauvegarder et quitter
+
+# Pour vérifier les cron jobs actifs :
+# sudo crontab -l
+
+# Pour vérifier les logs d'exécution :
+# sudo grep -i cron /var/log/syslog
+# sudo grep -i vps /var/log/syslog

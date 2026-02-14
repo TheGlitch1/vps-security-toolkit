@@ -1,0 +1,34 @@
+# Configuration Cron - Serveur Critique
+# Placez ce fichier dans /etc/cron.d/vps-security-toolkit
+
+# Surveillance intensive pour serveurs critiques
+# Monitoring fréquent avec alertes en temps réel
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+MAILTO=""
+
+# Variables - À PERSONNALISER
+VPS_TOOLKIT_PATH=/path/to/vps-security-toolkit
+ADMIN_EMAIL=admin@example.com
+TELEGRAM_BOT_TOKEN=123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11
+TELEGRAM_CHAT_ID=987654321
+
+# Health Check - Toutes les 2 minutes avec alertes Telegram
+*/2 * * * * root $VPS_TOOLKIT_PATH/scripts/vps-health-check.sh --silent --telegram "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_CHAT_ID" 2>&1 | logger -t vps-health
+
+# Security Audit - 2 fois par jour (2h00 et 14h00)
+0 2,14 * * * root $VPS_TOOLKIT_PATH/scripts/vps-security-audit.sh --silent --email $ADMIN_EMAIL --telegram "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_CHAT_ID" 2>&1 | logger -t vps-security
+
+# SSH Analysis - Toutes les 3 heures
+0 */3 * * * root $VPS_TOOLKIT_PATH/scripts/vps-ssh-analysis.sh --period 24h --silent --email $ADMIN_EMAIL 2>&1 | logger -t vps-ssh
+
+# Intrusion Check - Toutes les 15 minutes avec alertes multiples
+*/15 * * * * root $VPS_TOOLKIT_PATH/scripts/vps-intrusion-check.sh --silent --email $ADMIN_EMAIL --telegram "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_CHAT_ID" 2>&1 | logger -t vps-intrusion
+
+# Nettoyage quotidien - 4h00 (garde 30 jours)
+0 4 * * * root find /var/log/vps-toolkit/json -name "*.json" -mtime +30 -delete 2>&1 | logger -t vps-cleanup
+0 4 * * * root find /var/log/vps-toolkit/html -name "*.html" -mtime +30 -delete 2>&1 | logger -t vps-cleanup
+
+# Archivage mensuel - 1er du mois à 5h00
+0 5 1 * * root tar -czf /backup/vps-toolkit-$(date +\%Y-\%m).tar.gz /var/log/vps-toolkit/ 2>&1 | logger -t vps-backup
