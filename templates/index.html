@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VPS Security Toolkit</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg-primary: #0a0e27;
+      --bg-secondary: #151932;
+      --bg-tertiary: #1e2139;
+      --text-primary: #e4e6eb;
+      --text-secondary: #b0b3b8;
+      --accent: #6366f1;
+      --accent-hover: #818cf8;
+      --border: rgba(255, 255, 255, 0.1);
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 2rem 0;
+    }
+
+    .container {
+      max-width: 1200px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2.5rem;
+    }
+
+    .header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+    }
+
+    .header p {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+
+    .report-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .report-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-decoration: none;
+      color: var(--text-primary);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .report-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--card-color, #6366f1) 0%, transparent 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .report-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow);
+      border-color: var(--card-color, var(--accent));
+    }
+
+    .report-card:hover::before {
+      opacity: 1;
+    }
+
+    .report-card.health {
+      --card-color: #10b981;
+    }
+
+    .report-card.security {
+      --card-color: #f59e0b;
+    }
+
+    .report-card.ssh {
+      --card-color: #ef4444;
+    }
+
+    .report-card.intrusion {
+      --card-color: #3b82f6;
+    }
+
+    .report-icon {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+      color: var(--card-color);
+    }
+
+    .report-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .report-description {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+    }
+
+    .json-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 2rem;
+    }
+
+    .json-section h5 {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    .btn-json {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s;
+      margin: 0.25rem;
+    }
+
+    .btn-json:hover {
+      background: var(--bg-primary);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    .footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      color: var(--accent-hover);
+    }
+
+    @media (max-width: 768px) {
+      .report-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1><i class="bi bi-shield-check"></i> VPS Security Toolkit</h1>
+      <p>Dashboards de Monitoring et Sécurité • vmi2983905.contaboserver.net</p>
+    </div>
+
+    <div class="report-grid">
+      <a href="health-check_latest.html" class="report-card health">
+        <div class="report-icon">
+          <i class="bi bi-heart-pulse-fill"></i>
+        </div>
+        <div class="report-title">Health Check</div>
+        <div class="report-description">
+          Monitoring système temps réel<br>
+          CPU • RAM • Disque • Services
+        </div>
+      </a>
+
+      <a href="security-audit_latest.html" class="report-card security">
+        <div class="report-icon">
+          <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <div class="report-title">Security Audit</div>
+        <div class="report-description">
+          Audit complet de sécurité<br>
+          Score • SSH • Firewall • Updates
+        </div>
+      </a>
+
+      <a href="ssh-analysis_latest.html" class="report-card ssh">
+        <div class="report-icon">
+          <i class="bi bi-shield-exclamation"></i>
+        </div>
+        <div class="report-title">SSH Attack Analysis</div>
+        <div class="report-description">
+          Analyse des tentatives d'intrusion<br>
+          Géolocalisation • Top Attackers
+        </div>
+      </a>
+
+      <a href="intrusion-check_latest.html" class="report-card intrusion">
+        <div class="report-icon">
+          <i class="bi bi-shield-fill-exclamation"></i>
+        </div>
+        <div class="report-title">Intrusion Detection</div>
+        <div class="report-description">
+          Détection d'intrusion système<br>
+          Sessions • Processus • SUID
+        </div>
+      </a>
+    </div>
+
+    <div class="json-section">
+      <h5><i class="bi bi-file-earmark-code"></i> Rapports JSON</h5>
+      <div>
+        <a href="../json/health-check_latest.json" class="btn-json" target="_blank">
+          <i class="bi bi-download"></i> Health Check
+        </a>
+        <a href="../json/security-audit_latest.json" class="btn-json" target="_blank">
+          <i class="bi bi-download"></i> Security Audit
+        </a>
+        <a href="../json/ssh-analysis_latest.json" class="btn-json" target="_blank">
+          <i class="bi bi-download"></i> SSH Analysis
+        </a>
+        <a href="../json/intrusion-check_latest.json" class="btn-json" target="_blank">
+          <i class="bi bi-download"></i> Intrusion Check
+        </a>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        <i class="bi bi-github"></i>
+        <a href="https://github.com/TheGlitch1/vps-security-toolkit" target="_blank">
+          VPS Security Toolkit
+        </a> • Open Source • v1.0.0
+      </p>
+    </div>
+  </div>
+</body>
+
+</html>

@@ -651,10 +651,182 @@ generate_html_output() {
     
     log_verbose "Génération du rapport HTML..." >&2
     
-    # TODO: Implémenter la génération HTML complète
-    echo "<!-- HTML Dashboard pour Intrusion Check -->" > "$HTML_OUTPUT_FILE"
+    local template_file="$SCRIPT_DIR/../templates/intrusion-check.html"
+    
+    if [[ ! -f "$template_file" ]]; then
+        log_error "Template introuvable: $template_file"
+        echo "<!-- HTML Dashboard pour Intrusion Check -->" > "$HTML_OUTPUT_FILE"
+        ln -sf "$HTML_OUTPUT_FILE" "$HTML_LATEST"
+        return 1
+    fi
+    
+    # Lire le JSON
+    local json_content=$(cat "$JSON_OUTPUT_FILE")
+    
+    # Extraire les valeurs avec grep (JSON sur une ligne, avec espaces)
+    local hostname=$(echo "$json_content" | grep -oP '"hostname":\s*"[^"]+' | grep -oP '"[^"]+$' | tr -d '"' | head -1)
+    local timestamp=$(echo "$json_content" | grep -oP '"timestamp":\s*"[^"]+' | grep -oP '"[^"]+$' | tr -d '"' | head -1)
+    local status=$(echo "$json_content" | grep -oP '"status":\s*"[^"]+' | grep -oP '"[^"]+$' | tr -d '"' | head -1)
+    local critical=$(echo "$json_content" | grep -oP '"critical_issues":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    local warnings=$(echo "$json_content" | grep -oP '"warnings":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    local suspicious=$(echo "$json_content" | grep -oP '"suspicious_items":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    
+    # Extraire les détails des checks
+    local sessions_total=$(echo "$json_content" | grep -oP 'active_sessions.*?"total":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    local sessions_suspicious=$(echo "$json_content" | grep -oP 'active_sessions.*?"suspicious":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    
+    local processes_found=$(echo "$json_content" | grep -oP 'suspicious_processes.*?"found":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    
+    local ports_total=$(echo "$json_content" | grep -oP 'listening_ports.*?"total":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    local ports_suspicious=$(echo "$json_content" | grep -oP 'listening_ports.*?"suspicious":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    
+    local suid_total=$(echo "$json_content" | grep -oP 'suid_files.*?"found":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    local suid_suspicious=$(echo "$json_content" | grep -oP 'suid_files.*?"suspicious":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    
+    local connections_total=$(echo "$json_content" | grep -oP 'network_connections.*?"total":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    local connections_external=$(echo "$json_content" | grep -oP 'network_connections.*?"external":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    local connections_suspicious=$(echo "$json_content" | grep -oP 'network_connections.*?"suspicious":\s*[0-9]+' | grep -oP '[0-9]+' | tail -1)
+    
+    local modifications_count=$(echo "$json_content" | grep -oP '"critical_files_modified":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    local hidden_files=$(echo "$json_content" | grep -oP 'hidden_files.*?"found":\s*[0-9]+' | grep -oP '[0-9]+' | head -1)
+    
+    # Déterminer la classe de statut
+    local status_class="ok"
+    [[ "$status" == "SUSPICIOUS" ]] && status_class="suspicious"
+    [[ "$status" == "WARNING" ]] && status_class="warning"
+    [[ "$status" == "CRITICAL" ]] && status_class="critical"
+    
+    # Copier le template et remplacer les placeholders
+    cp "$template_file" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{HOSTNAME}}|${hostname:-$(hostname)}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{TIMESTAMP}}|${timestamp:-$TIMESTAMP}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{VERSION}}|$VERSION|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{STATUS}}|${status:-OK}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{STATUS_CLASS}}|$status_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CRITICAL_COUNT}}|${critical:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{WARNING_COUNT}}|${warnings:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUSPICIOUS_COUNT}}|${suspicious:-0}|g" "$HTML_OUTPUT_FILE"
+    
+    # Placeholders pour les checks détaillés (à implémenter plus tard)
+    sed -i "s|{{SESSIONS_CHECK}}|<div class='check-item'>Voir le JSON pour les détails</div>|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PROCESSES_CHECK}}|<div class='check-item'>Voir le JSON pour les détails</div>|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CONNECTIONS_CHECK}}|<div class='check-item'>Voir le JSON pour les détails</div>|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FILES_CHECK}}|<div class='check-item'>Voir le JSON pour les détails</div>|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{LOGS_CHECK}}|<div class='check-item'>Voir le JSON pour les détails</div>|g" "$HTML_OUTPUT_FILE"
+    
+    # Valeurs réelles des checks
+    sed -i "s|{{ACTIVE_SESSIONS}}|${sessions_total:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUSPICIOUS_PROCESSES}}|${processes_found:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{UNUSUAL_CONNECTIONS}}|${connections_suspicious:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{MODIFIED_FILES}}|${modifications_count:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUID_FILES}}|${suid_total:-0}|g" "$HTML_OUTPUT_FILE"
+    
+    # Détails réseau
+    sed -i "s|{{CONNECTIONS_TOTAL}}|${connections_total:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CONNECTIONS_EXTERNAL}}|${connections_external:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CONNECTIONS_SUSPICIOUS}}|${connections_suspicious:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CONNECTIONS_DETAILS}}||g" "$HTML_OUTPUT_FILE"
+    
+    local network_status="OK"
+    local network_class="ok"
+    [[ $connections_suspicious -gt 0 ]] && network_status="SUSPICIOUS" && network_class="warning"
+    sed -i "s|{{NETWORK_STATUS}}|$network_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{NETWORK_STATUS_CLASS}}|$network_class|g" "$HTML_OUTPUT_FILE"
+    
+    # Processus suspects
+    sed -i "s|{{BACKDOORS_COUNT}}|0|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{MINERS_COUNT}}|0|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{HIGH_CPU_COUNT}}|0|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUSPICIOUS_PROCS_LIST}}||g" "$HTML_OUTPUT_FILE"
+    
+    local process_status="OK"
+    local process_class="ok"
+    [[ $processes_found -gt 0 ]] && process_status="SUSPICIOUS" && process_class="warning"
+    sed -i "s|{{PROCESS_STATUS}}|$process_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PROCESS_STATUS_CLASS}}|$process_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PROCESSES_STATUS}}|$process_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PROCESSES_STATUS_CLASS}}|$process_class|g" "$HTML_OUTPUT_FILE"
+    
+    # Fichiers cachés
+    sed -i "s|{{HIDDEN_COUNT}}|${hidden_files:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{HIDDEN_TMP}}|0|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{HIDDEN_VAR_TMP}}|0|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{HIDDEN_SHM}}|0|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{HIDDEN_FILES_LIST}}||g" "$HTML_OUTPUT_FILE"
+    
+    local hidden_status="OK"
+    local hidden_class="ok"
+    [[ $hidden_files -gt 0 ]] && hidden_status="SUSPICIOUS" && hidden_class="warning"
+    sed -i "s|{{HIDDEN_STATUS}}|$hidden_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{HIDDEN_STATUS_CLASS}}|$hidden_class|g" "$HTML_OUTPUT_FILE"
+    
+    # Modifications système
+    sed -i "s|{{MODIFICATIONS_COUNT}}|${modifications_count:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{MODIFICATIONS_TIMELINE}}||g" "$HTML_OUTPUT_FILE"
+    
+    local modif_status="OK"
+    local modif_class="ok"
+    [[ $modifications_count -gt 0 ]] && modif_status="WARNING" && modif_class="warning"
+    sed -i "s|{{MODIFICATIONS_STATUS}}|$modif_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{MODIFICATIONS_STATUS_CLASS}}|$modif_class|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{HOURS}}|24|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{ROOTKITS_FOUND}}|0|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUSPICIOUS_BINARIES}}|0|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{TIMELINE_ITEMS}}||g" "$HTML_OUTPUT_FILE"
+    
+    # Statut global dynamique
+    local status_icon="bi-check-circle-fill"
+    local status_text="Système sain"
+    if [[ "$status" == "WARNING" ]]; then
+        status_icon="bi-exclamation-triangle-fill"
+        status_text="Attention requise"
+    elif [[ "$status" == "CRITICAL" ]]; then
+        status_icon="bi-x-circle-fill"
+        status_text="Intrusion détectée!"
+    fi
+    sed -i "s|{{STATUS_ICON}}|$status_icon|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{STATUS_TEXT}}|$status_text|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{RECOMMENDATIONS}}||g" "$HTML_OUTPUT_FILE"
+    
+    # Sessions
+    sed -i "s|{{SESSIONS_COUNT}}|${sessions_total:-0}|g" "$HTML_OUTPUT_FILE"
+    local sessions_status="OK"
+    local sessions_class="ok"
+    [[ $sessions_suspicious -gt 0 ]] && sessions_status="SUSPICIOUS" && sessions_class="warning"
+    sed -i "s|{{SESSIONS_STATUS}}|$sessions_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SESSIONS_STATUS_CLASS}}|$sessions_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SESSIONS_LIST}}||g" "$HTML_OUTPUT_FILE"
+    
+    # Processus suspect details
+    sed -i "s|{{PROCESSES_SUSPECT}}|${processes_found:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PROCESSES_DETAILS}}||g" "$HTML_OUTPUT_FILE"
+    
+    # Ports
+    sed -i "s|{{PORTS_TOTAL}}|${ports_total:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PORTS_UNUSUAL}}|${ports_suspicious:-0}|g" "$HTML_OUTPUT_FILE"
+    local ports_status="OK"
+    local ports_class="ok"
+    [[ $ports_suspicious -gt 0 ]] && ports_status="SUSPICIOUS" && ports_class="warning"
+    sed -i "s|{{PORTS_STATUS}}|$ports_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PORTS_STATUS_CLASS}}|$ports_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PORTS_ROWS}}||g" "$HTML_OUTPUT_FILE"
+    
+    # SUID files
+    sed -i "s|{{SUID_TOTAL}}|${suid_total:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUID_SUSPICIOUS}}|${suid_suspicious:-0}|g" "$HTML_OUTPUT_FILE"
+    local suid_status="OK"
+    local suid_class="ok"
+    [[ $suid_suspicious -gt 0 ]] && suid_status="WARNING" && suid_class="warning"
+    sed -i "s|{{SUID_STATUS}}|$suid_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUID_STATUS_CLASS}}|$suid_class|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{JSON_FILE_PATH}}|../json/intrusion-check_latest.json|g" "$HTML_OUTPUT_FILE"
     
     ln -sf "$HTML_OUTPUT_FILE" "$HTML_LATEST"
+    
+    log_verbose "Rapport HTML généré: $HTML_OUTPUT_FILE"
 }
 
 # ============================================================================

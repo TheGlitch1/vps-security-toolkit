@@ -214,8 +214,8 @@ get_network_info() {
 # Description: Récupère les informations sur les processus
 get_process_info() {
     local total_processes=$(ps aux | wc -l)
-    local zombie_processes=$(ps aux | awk '{print $8}' | grep -c 'Z' || echo "0")
-    local running_processes=$(ps aux | awk '{print $8}' | grep -c 'R' || echo "0")
+    local zombie_processes=$(ps aux | awk '{print $8}' | grep -c 'Z')
+    local running_processes=$(ps aux | awk '{print $8}' | grep -c 'R')
     
     echo "{\"total\":$total_processes,\"zombies\":$zombie_processes,\"running\":$running_processes}"
 }
@@ -550,176 +550,162 @@ generate_html_output() {
     
     log_verbose "Génération du rapport HTML..."
     
+    local template_file="$SCRIPT_DIR/../templates/health-check.html"
+    
+    if [[ ! -f "$template_file" ]]; then
+        log_error "Template introuvable: $template_file"
+        return 1
+    fi
+    
+    # Lire le JSON
     local json_content=$(cat "$JSON_OUTPUT_FILE")
-    local hostname=$(echo "$json_content" | grep -oP '(?<="hostname": ")[^"]+')
-    local status=$(echo "$json_content" | grep -oP '(?<="status": ")[^"]+')
     
-    # Déterminer la couleur du statut
-    local status_class="success"
+    # Extraire les valeurs principales
+    local hostname=$(echo "$json_content" | jq -r '.metadata.hostname // "unknown"')
+    local timestamp=$(echo "$json_content" | jq -r '.metadata.timestamp // "N/A"')
+    local status=$(echo "$json_content" | jq -r '.summary.status // "OK"')
+    
+    # Déterminer la classe CSS du statut
+    local status_class="ok"
     [[ "$status" == "WARNING" ]] && status_class="warning"
-    [[ "$status" == "CRITICAL" ]] && status_class="danger"
+    [[ "$status" == "CRITICAL" ]] && status_class="critical"
     
-    # Générer le HTML
-    {
-        generate_html_header "Health Check - $hostname"
-        
-        cat <<'HTMLBODY'
-        <!-- Status Overview -->
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-body text-center">
-                        <h2 class="mb-3">Statut Global</h2>
-                        <h1><span class="status-badge status-STATUS_CLASS">STATUS_VALUE</span></h1>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Metrics Cards -->
-        <div class="row mb-4">
-            <div class="col-md-3">
-                <div class="card metric-card bg-primary text-white">
-                    <div class="metric-label">CPU Usage</div>
-                    <div class="metric-value">CPU_VALUE%</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card metric-card bg-info text-white">
-                    <div class="metric-label">RAM Usage</div>
-                    <div class="metric-value">RAM_VALUE%</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card metric-card bg-warning text-dark">
-                    <div class="metric-label">Disk Usage</div>
-                    <div class="metric-value">DISK_VALUE%</div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="card metric-card bg-success text-white">
-                    <div class="metric-label">Uptime</div>
-                    <div class="metric-value">UPTIME_VALUE days</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Detailed Information -->
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-microchip"></i> CPU & Memory</h5>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm">
-                            <tr><th>CPU Cores</th><td>CPU_COUNT</td></tr>
-                            <tr><th>CPU Usage</th><td><div class="progress progress-custom"><div class="progress-bar CPU_PROGRESS_COLOR" style="width: CPU_VALUE%">CPU_VALUE%</div></div></td></tr>
-                            <tr><th>RAM Used</th><td>RAM_USED MB / RAM_TOTAL MB</td></tr>
-                            <tr><th>RAM Usage</th><td><div class="progress progress-custom"><div class="progress-bar RAM_PROGRESS_COLOR" style="width: RAM_VALUE%">RAM_VALUE%</div></div></td></tr>
-                            <tr><th>SWAP Used</th><td>SWAP_USED MB / SWAP_TOTAL MB</td></tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-md-6 mb-4">
-                <div class="card">
-                    <div class="card-header bg-success text-white">
-                        <h5 class="mb-0"><i class="fas fa-server"></i> System Info</h5>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-sm">
-                            <tr><th>Hostname</th><td>HOSTNAME_VALUE</td></tr>
-                            <tr><th>Uptime</th><td>UPTIME_VALUE days</td></tr>
-                            <tr><th>Load Average</th><td>LOAD_VALUE</td></tr>
-                            <tr><th>Total Processes</th><td>PROCESS_TOTAL</td></tr>
-                            <tr><th>Zombie Processes</th><td>ZOMBIE_COUNT</td></tr>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Services Status -->
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h5 class="mb-0"><i class="fas fa-cogs"></i> Services Status</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-custom">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Service</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    SERVICES_ROWS
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Disk Usage -->
-        <div class="row mb-4">
-            <div class="col-md-12">
-                <div class="card">
-                    <div class="card-header bg-warning text-dark">
-                        <h5 class="mb-0"><i class="fas fa-hdd"></i> Disk Usage</h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-custom">
-                            <table class="table table-striped">
-                                <thead>
-                                    <tr>
-                                        <th>Mount Point</th>
-                                        <th>Filesystem</th>
-                                        <th>Size</th>
-                                        <th>Used</th>
-                                        <th>Available</th>
-                                        <th>Usage</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    DISKS_ROWS
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-HTMLBODY
-        
-        # Remplacer les placeholders
-        sed -i "s/STATUS_CLASS/$status_class/g" "$HTML_OUTPUT_FILE"
-        sed -i "s/STATUS_VALUE/$status/g" "$HTML_OUTPUT_FILE"
-        
-        # Extraire et remplacer les valeurs
-        local cpu_value=$(echo "$json_content" | grep -oP '(?<="usage":)\d+' | head -1)
-        local ram_value=$(echo "$json_content" | grep -oP '"ram".*?"percent":\d+' | grep -oP '\d+$')
-        local uptime_days=$(echo "$json_content" | grep -oP '(?<="days":)\d+')
-        
-        sed -i "s/CPU_VALUE/$cpu_value/g" "$HTML_OUTPUT_FILE"
-        sed -i "s/RAM_VALUE/$ram_value/g" "$HTML_OUTPUT_FILE"
-        sed -i "s/UPTIME_VALUE/$uptime_days/g" "$HTML_OUTPUT_FILE"
-        
-        # TODO: Compléter avec toutes les autres valeurs dynamiques
-        
-        generate_html_footer
-        
-    } > "$HTML_OUTPUT_FILE"
+    # Métriques CPU
+    local cpu_cores=$(echo "$json_content" | jq -r '.data.cpu.count // 0')
+    local cpu_usage=$(echo "$json_content" | jq -r '.data.cpu.usage // 0')
+    local cpu_temp=$(echo "$json_content" | jq -r '.data.cpu.temperature // "N/A"')
+    local load_1m=$(echo "$json_content" | jq -r '.data.uptime.load_1 // 0')
+    local load_5m=$(echo "$json_content" | jq -r '.data.uptime.load_5 // 0')
+    local load_15m=$(echo "$json_content" | jq -r '.data.uptime.load_15 // 0')
+    
+    # Métriques RAM
+    local ram_total=$(echo "$json_content" | jq -r '.data.memory.ram.total // "N/A"')
+    local ram_used=$(echo "$json_content" | jq -r '.data.memory.ram.used // "N/A"')
+    local ram_free=$(echo "$json_content" | jq -r '.data.memory.ram.free // "N/A"')
+    local ram_available=$(echo "$json_content" | jq -r '.data.memory.ram.available // "N/A"')
+    local ram_percent=$(echo "$json_content" | jq -r '.data.memory.ram.percent // 0')
+    
+    # Métriques SWAP
+    local swap_total=$(echo "$json_content" | jq -r '.data.memory.swap.total // "N/A"')
+    local swap_used=$(echo "$json_content" | jq -r '.data.memory.swap.used // "N/A"')
+    local swap_free=$(echo "$json_content" | jq -r '.data.memory.swap.free // "N/A"')
+    local swap_percent=$(echo "$json_content" | jq -r '.data.memory.swap.percent // 0')
+    
+    # Disque (valeur moyenne)
+    local disk_percent=$(echo "$json_content" | jq -r '.data.disks[0].percent // 0')
+    
+    # Uptime
+    local uptime_days=$(echo "$json_content" | jq -r '.data.uptime.days // 0')
+    
+    # Compteurs
+    local critical_count=$(echo "$json_content" | jq -r '.summary.critical_issues // 0')
+    local warning_count=$(echo "$json_content" | jq -r '.summary.warnings // 0')
+    local services_active=$(echo "$json_content" | jq -r '.data.services | map(select(.status == "active")) | length')
+    
+    # Services
+    local ssh_status=$(echo "$json_content" | jq -r '.data.services[] | select(.name == "sshd") | .status // "unknown"')
+    local cron_status=$(echo "$json_content" | jq -r '.data.services[] | select(.name == "cron") | .status // "unknown"')
+    local fail2ban_status=$(echo "$json_content" | jq -r '.data.services[] | select(.name == "fail2ban") | .status // "unknown"')
+    
+    # Processus
+    local process_total=$(echo "$json_content" | jq -r '.data.processes.total // 0')
+    local process_running=$(echo "$json_content" | jq -r '.data.processes.running // 0')
+    local process_zombie=$(echo "$json_content" | jq -r '.data.processes.zombies // 0')
+    
+    # Réseau
+    local connections_established=$(echo "$json_content" | jq -r '.data.network.established // 0')
+    local listening_ports=$(echo "$json_content" | jq -r '.data.network.listening // 0')
+    local time_wait=$(echo "$json_content" | jq -r '.data.network.time_wait // 0')
+    
+    # Copier le template
+    cp "$template_file" "$HTML_OUTPUT_FILE"
+    
+    # Remplacer les placeholders de base
+    sed -i "s|{{HOSTNAME}}|$hostname|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{TIMESTAMP}}|$timestamp|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{VERSION}}|$VERSION|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{STATUS_CLASS}}|$status_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{STATUS_VALUE}}|$status|g" "$HTML_OUTPUT_FILE"
+    
+    # Remplacer les métriques principales
+    sed -i "s|{{CPU_VALUE}}|$cpu_usage|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{RAM_VALUE}}|$ram_percent|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{DISK_VALUE}}|$disk_percent|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{UPTIME_DAYS}}|$uptime_days|g" "$HTML_OUTPUT_FILE"
+    
+    # Compteurs de problèmes
+    sed -i "s|{{CRITICAL_COUNT}}|$critical_count|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{WARNING_COUNT}}|$warning_count|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SERVICES_ACTIVE}}|$services_active|g" "$HTML_OUTPUT_FILE"
+    
+    # Détails CPU
+    sed -i "s|{{CPU_CORES}}|$cpu_cores|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CPU_USAGE}}|$cpu_usage|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CPU_TEMP}}|$cpu_temp|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{LOAD_1M}}|$load_1m|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{LOAD_5M}}|$load_5m|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{LOAD_15M}}|$load_15m|g" "$HTML_OUTPUT_FILE"
+    
+    # Détails RAM
+    sed -i "s|{{RAM_TOTAL}}|$ram_total|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{RAM_USED}}|$ram_used|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{RAM_FREE}}|$ram_free|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{RAM_AVAILABLE}}|$ram_available|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{RAM_PERCENT}}|$ram_percent|g" "$HTML_OUTPUT_FILE"
+    
+    # Détails SWAP
+    sed -i "s|{{SWAP_TOTAL}}|$swap_total|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SWAP_USED}}|$swap_used|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SWAP_FREE}}|$swap_free|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SWAP_PERCENT}}|$swap_percent|g" "$HTML_OUTPUT_FILE"
+    
+    # Services status (statut et icône)
+    local ssh_icon="circle-fill" && [[ "$ssh_status" == "active" ]] && ssh_icon="check-circle-fill"
+    local cron_icon="circle-fill" && [[ "$cron_status" == "active" ]] && cron_icon="check-circle-fill"
+    local fail2ban_icon="circle-fill" && [[ "$fail2ban_status" == "active" ]] && fail2ban_icon="check-circle-fill"
+    
+    local ssh_class="service-inactive" && [[ "$ssh_status" == "active" ]] && ssh_class="service-active"
+    local cron_class="service-inactive" && [[ "$cron_status" == "active" ]] && cron_class="service-active"
+    local fail2ban_class="service-inactive" && [[ "$fail2ban_status" == "active" ]] && fail2ban_class="service-active"
+    
+    sed -i "s|{{SSH_STATUS}}|${ssh_status^}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SSH_ICON}}|$ssh_icon|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SSH_STATUS_CLASS}}|$ssh_class|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{CRON_STATUS}}|${cron_status^}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CRON_ICON}}|$cron_icon|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{CRON_STATUS_CLASS}}|$cron_class|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{FAIL2BAN_STATUS}}|${fail2ban_status^}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAIL2BAN_ICON}}|$fail2ban_icon|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAIL2BAN_STATUS_CLASS}}|$fail2ban_class|g" "$HTML_OUTPUT_FILE"
+    
+    # Processus
+    sed -i "s|{{PROCESS_TOTAL}}|$process_total|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PROCESS_RUNNING}}|$process_running|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PROCESS_ZOMBIE}}|$process_zombie|g" "$HTML_OUTPUT_FILE"
+    
+    # Réseau
+    sed -i "s|{{CONNECTIONS_ESTABLISHED}}|$connections_established|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{LISTENING_PORTS}}|$listening_ports|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{TIME_WAIT}}|$time_wait|g" "$HTML_OUTPUT_FILE"
+    
+    # Disques (générer les lignes de tableau)
+    local disk_rows=""
+    echo "$json_content" | jq -r '.data.disks[]? | "<tr><td>\(.filesystem)</td><td>\(.size)</td><td>\(.used)</td><td>\(.available)</td><td>\(.percent)%</td><td>\(.mountpoint)</td><td><div class=\"progress-custom\"><div class=\"progress-bar-custom\" style=\"width: \(.percent)%\">\(.percent)%</div></div></td></tr>"' > /tmp/disk_rows.tmp 2>/dev/null || echo "<tr><td colspan='7'>Données non disponibles</td></tr>" > /tmp/disk_rows.tmp
+    disk_rows=$(cat /tmp/disk_rows.tmp)
+    rm -f /tmp/disk_rows.tmp
+    
+    # Échapper les caractères spéciaux pour sed
+    disk_rows=$(echo "$disk_rows" | sed 's/[\/&]/\\&/g')
+    sed -i "s|{{DISK_ROWS}}|$disk_rows|g" "$HTML_OUTPUT_FILE"
+    
+    # JSON path
+    sed -i "s|{{JSON_FILE_PATH}}|../json/health-check_latest.json|g" "$HTML_OUTPUT_FILE"
     
     ln -sf "$HTML_OUTPUT_FILE" "$HTML_LATEST"
     
-    log_verbose "HTML généré: $HTML_OUTPUT_FILE"
+    log_verbose "Rapport HTML généré: $HTML_OUTPUT_FILE"
 }
 
 # ============================================================================

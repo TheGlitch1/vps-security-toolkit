@@ -627,10 +627,166 @@ generate_html_output() {
     
     log_verbose "Génération du rapport HTML..."
     
-    # TODO: Implémenter la génération HTML complète
-    echo "<!-- HTML Dashboard pour Security Audit -->" > "$HTML_OUTPUT_FILE"
+    local template_file="$SCRIPT_DIR/../templates/security-audit.html"
+    
+    if [[ ! -f "$template_file" ]]; then
+        log_error "Template introuvable: $template_file"
+        echo "<!-- HTML Dashboard pour Security Audit -->" > "$HTML_OUTPUT_FILE"
+        ln -sf "$HTML_OUTPUT_FILE" "$HTML_LATEST"
+        return 1
+    fi
+    
+    # Lire le JSON
+    local json_content=$(cat "$JSON_OUTPUT_FILE")
+    
+    # Extraire les valeurs avec jq
+    local hostname=$(echo "$json_content" | jq -r '.metadata.hostname // "unknown"')
+    local timestamp=$(echo "$json_content" | jq -r '.metadata.timestamp // ""')
+    local score=$(echo "$json_content" | jq -r '.summary.score // 0')
+    local status=$(echo "$json_content" | jq -r '.summary.status // "UNKNOWN"')
+    
+    # Scores par catégorie avec jq
+    local score_ssh=$(echo "$json_content" | jq -r '.audits.ssh.score // 0')
+    local score_fail2ban=$(echo "$json_content" | jq -r '.audits.fail2ban.score // 0')
+    local score_firewall=$(echo "$json_content" | jq -r '.audits.firewall.score // 0')
+    local score_updates=$(echo "$json_content" | jq -r '.audits.updates.score // 0')
+    local score_users=$(echo "$json_content" | jq -r '.audits.users.score // 0')
+    
+    # Déterminer les classes CSS
+    local score_class="excellent"
+    [[ $score -lt 90 ]] && score_class="good"
+    [[ $score -lt 70 ]] && score_class="warning"
+    [[ $score -lt 50 ]] && score_class="critical"
+    
+    local score_label="EXCELLENT"
+    [[ $score -lt 90 ]] && score_label="GOOD"
+    [[ $score -lt 70 ]] && score_label="WARNING"
+    [[ $score -lt 50 ]] && score_label="CRITICAL"
+    
+    # Copier le template et remplacer les placeholders
+    cp "$template_file" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{HOSTNAME}}|${hostname:-$(hostname)}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{TIMESTAMP}}|${timestamp:-$TIMESTAMP}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{VERSION}}|$VERSION|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE}}|${score:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE_CLASS}}|$score_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE_LABEL}}|$score_label|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE_SSH}}|${score_ssh:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE_FAIL2BAN}}|${score_fail2ban:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE_FIREWALL}}|${score_firewall:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE_UPDATES}}|${score_updates:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE_USERS}}|${score_users:-0}|g" "$HTML_OUTPUT_FILE"
+    
+    # Générer les checks SSH
+    local ssh_checks_html=""
+    local ssh_check_count=$(echo "$json_content" | jq '.audits.ssh.checks | length')
+    for ((i=0; i<$ssh_check_count; i++)); do
+        local param=$(echo "$json_content" | jq -r ".audits.ssh.checks[$i].parameter")
+        local value=$(echo "$json_content" | jq -r ".audits.ssh.checks[$i].value")
+        local expected=$(echo "$json_content" | jq -r ".audits.ssh.checks[$i].expected")
+        local check_status=$(echo "$json_content" | jq -r ".audits.ssh.checks[$i].status")
+        
+        local icon="bi-check-circle-fill"
+        local color="#10b981"
+        [[ "$check_status" == "warning" ]] && icon="bi-exclamation-triangle-fill" && color="#f59e0b"
+        [[ "$check_status" == "fail" ]] && icon="bi-x-circle-fill" && color="#ef4444"
+        
+        ssh_checks_html+="<div class='check-item'><i class='bi $icon check-icon' style='color: $color;'></i> <strong>$param:</strong> $value <span style='color: #9ca3af;'>(attendu: $expected)</span></div>"
+    done
+    [[ -z "$ssh_checks_html" ]] && ssh_checks_html="<div class='check-item'><i class='bi bi-info-circle check-icon' style='color: #3b82f6;'></i> Aucune donnée disponible</div>"
+    # Échapper les caractères spéciaux pour sed (mais pas le pipe)
+    ssh_checks_html=$(echo "$ssh_checks_html" | sed 's/[\/&]/\\&/g' | sed 's/|/\\|/g')
+    
+    # Générer les checks Fail2ban
+    local fail2ban_checks_html=""
+    local fail2ban_installed=$(echo "$json_content" | jq -r '.audits.fail2ban.installed')
+    local fail2ban_active=$(echo "$json_content" | jq -r '.audits.fail2ban.active')
+    local fail2ban_jails=$(echo "$json_content" | jq -r '.audits.fail2ban.jails_count // 0')
+    
+    if [[ "$fail2ban_installed" == "true" ]]; then
+        fail2ban_checks_html="<div class='check-item'><i class='bi bi-check-circle-fill check-icon' style='color: #10b981;'></i> <strong>Installation:</strong> Installé</div>"
+        if [[ "$fail2ban_active" == "true" ]]; then
+            fail2ban_checks_html+="<div class='check-item'><i class='bi bi-check-circle-fill check-icon' style='color: #10b981;'></i> <strong>Statut:</strong> Actif</div>"
+            fail2ban_checks_html+="<div class='check-item'><i class='bi bi-info-circle check-icon' style='color: #3b82f6;'></i> <strong>Jails actives:</strong> $fail2ban_jails</div>"
+        else
+            fail2ban_checks_html+="<div class='check-item'><i class='bi bi-exclamation-triangle-fill check-icon' style='color: #f59e0b;'></i> <strong>Statut:</strong> Installé mais inactif</div>"
+        fi
+    else
+        fail2ban_checks_html="<div class='check-item'><i class='bi bi-x-circle-fill check-icon' style='color: #ef4444;'></i> <strong>Installation:</strong> Non installé</div>"
+    fi
+    fail2ban_checks_html=$(echo "$fail2ban_checks_html" | sed 's/[\/&]/\\&/g')
+    
+    # Générer les checks Firewall
+    local firewall_checks_html=""
+    local ufw_installed=$(echo "$json_content" | jq -r '.audits.firewall.ufw.installed')
+    local ufw_active=$(echo "$json_content" | jq -r '.audits.firewall.ufw.active')
+    local ufw_rules=$(echo "$json_content" | jq -r '.audits.firewall.ufw.rules // 0')
+    
+    if [[ "$ufw_installed" == "true" ]]; then
+        firewall_checks_html="<div class='check-item'><i class='bi bi-check-circle-fill check-icon' style='color: #10b981;'></i> <strong>UFW:</strong> Installé</div>"
+        if [[ "$ufw_active" == "true" ]]; then
+            firewall_checks_html+="<div class='check-item'><i class='bi bi-check-circle-fill check-icon' style='color: #10b981;'></i> <strong>Statut UFW:</strong> Actif</div>"
+            firewall_checks_html+="<div class='check-item'><i class='bi bi-info-circle check-icon' style='color: #3b82f6;'></i> <strong>Règles UFW:</strong> $ufw_rules</div>"
+        else
+            firewall_checks_html+="<div class='check-item'><i class='bi bi-exclamation-triangle-fill check-icon' style='color: #f59e0b;'></i> <strong>Statut UFW:</strong> Inactif</div>"
+        fi
+    else
+        firewall_checks_html="<div class='check-item'><i class='bi bi-x-circle-fill check-icon' style='color: #ef4444;'></i> <strong>UFW:</strong> Non installé</div>"
+    fi
+    firewall_checks_html=$(echo "$firewall_checks_html" | sed 's/[\/&]/\\&/g')
+    
+    # Générer les checks Users
+    local users_checks_html=""
+    local shell_users=$(echo "$json_content" | jq -r '.audits.users.accounts_with_shell // 0')
+    local uid0_count=$(echo "$json_content" | jq -r '.audits.users.uid_0_accounts // 1')
+    
+    users_checks_html="<div class='check-item'><i class='bi bi-info-circle check-icon' style='color: #3b82f6;'></i> <strong>Comptes avec shell:</strong> $shell_users</div>"
+    if [[ "$uid0_count" -eq 1 ]]; then
+        users_checks_html+="<div class='check-item'><i class='bi bi-check-circle-fill check-icon' style='color: #10b981;'></i> <strong>Comptes UID 0:</strong> 1 (uniquement root)</div>"
+    else
+        users_checks_html+="<div class='check-item'><i class='bi bi-x-circle-fill check-icon' style='color: #ef4444;'></i> <strong>Comptes UID 0:</strong> $uid0_count (CRITIQUE!)</div>"
+    fi
+    users_checks_html=$(echo "$users_checks_html" | sed 's/[\/&]/\\&/g')
+    
+    # Remplacer les placeholders
+    sed -i "s|{{SSH_CHECKS}}|$ssh_checks_html|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAIL2BAN_CHECKS}}|$fail2ban_checks_html|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FIREWALL_CHECKS}}|$firewall_checks_html|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{USERS_CHECKS}}|$users_checks_html|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{SSH_CLASS}}|$score_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAIL2BAN_CLASS}}|$score_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FIREWALL_CLASS}}|$score_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{UPDATES_CLASS}}|$score_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{USERS_CLASS}}|$score_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SCORE_TEXT_CLASS}}|$score_class|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{SSH_RECOMMENDATIONS}}||g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAIL2BAN_RECOMMENDATIONS}}||g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FIREWALL_RECOMMENDATIONS}}||g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{USERS_RECOMMENDATIONS}}||g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{UPDATES_RECOMMENDATIONS}}||g" "$HTML_OUTPUT_FILE"
+    
+    # Extraire les données Updates du JSON
+    local updates_total=$(echo "$json_content" | jq -r '.audits.updates.total_updates // 0')
+    local updates_security=$(echo "$json_content" | jq -r '.audits.updates.security_updates // 0')
+    local reboot_required=$(echo "$json_content" | jq -r '.audits.updates.reboot_required')
+    local reboot_text="Non"
+    [[ "$reboot_required" == "true" ]] && reboot_text="Oui"
+    
+    sed -i "s|{{UPDATES_COUNT}}|$updates_total|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SECURITY_UPDATES_COUNT}}|$updates_security|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{REBOOT_REQUIRED}}|$reboot_text|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{CRITICAL_RECOMMENDATIONS}}|<li>Consulter le fichier JSON pour les recommandations détaillées</li>|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{IMPROVEMENT_RECOMMENDATIONS}}|<li>Consulter le fichier JSON pour les améliorations suggérées</li>|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{JSON_FILE_PATH}}|../json/security-audit_latest.json|g" "$HTML_OUTPUT_FILE"
     
     ln -sf "$HTML_OUTPUT_FILE" "$HTML_LATEST"
+    
+    log_verbose "Rapport HTML généré: $HTML_OUTPUT_FILE"
 }
 
 # ============================================================================

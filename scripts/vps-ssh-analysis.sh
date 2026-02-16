@@ -526,10 +526,154 @@ generate_html_output() {
     
     log_verbose "Génération du rapport HTML..." >&2
     
-    # TODO: Implémenter la génération HTML complète
-    echo "<!-- HTML Dashboard pour SSH Analysis -->" > "$HTML_OUTPUT_FILE"
+    local template_file="$SCRIPT_DIR/../templates/ssh-analysis.html"
+    
+    if [[ ! -f "$template_file" ]]; then
+        log_error "Template introuvable: $template_file"
+        echo "<!-- HTML Dashboard pour SSH Analysis -->" > "$HTML_OUTPUT_FILE"
+        ln -sf "$HTML_OUTPUT_FILE" "$HTML_LATEST"
+        return 1
+    fi
+    
+    # Lire le JSON
+    local json_content=$(cat "$JSON_OUTPUT_FILE")
+    
+    # Extraire les valeurs avec jq
+    local hostname=$(echo "$json_content" | jq -r '.metadata.hostname // "unknown"')
+    local timestamp=$(echo "$json_content" | jq -r '.metadata.timestamp // "N/A"')
+    local failed_24h=$(echo "$json_content" | jq -r '.summary.failed_attempts_24h // 0')
+    local unique_ips=$(echo "$json_content" | jq -r '.summary.unique_attackers_24h // 0')
+    local invalid_users=$(echo "$json_content" | jq -r '.statistics."24h".invalid_users // 0')
+    local successful=$(echo "$json_content" | jq -r '.successful_logins.total // 0')
+    local root_attacks=$(echo "$json_content" | jq -r '.statistics."24h".failed_root // 0')
+    local banned=$(echo "$json_content" | jq -r '.fail2ban.banned_count // 0')
+    
+    # Compter les pays uniques
+    local countries=$(echo "$json_content" | jq -r '[.top_attackers[].country] | unique | length')
+    
+    # Attack patterns
+    local brute_force=$(echo "$json_content" | jq -r '.attack_patterns.brute_force_sources // 0')
+    local port_scan=$(echo "$json_content" | jq -r '.attack_patterns.port_scan_sources // 0')
+    local dictionary=$(echo "$json_content" | jq -r '.attack_patterns.dictionary_attack_users // 0')
+    local root_sources=$(echo "$json_content" | jq -r '.attack_patterns.root_attack_sources // 0')
+    
+    # Successful logins details
+    local ssh_key_logins=$(echo "$json_content" | jq -r '.successful_logins.publickey // 0')
+    local password_logins=$(echo "$json_content" | jq -r '.successful_logins.password // 0')
+    local successful_ips=$(echo "$json_content" | jq -r '.successful_logins.unique_ips | length // 0')
+    
+    # Fail2ban status
+    local fail2ban_status="Not installed"
+    local fail2ban_class="warning"
+    if [[ $(echo "$json_content" | jq -r '.fail2ban.installed') == "true" ]]; then
+        if [[ $(echo "$json_content" | jq -r '.fail2ban.active') == "true" ]]; then
+            fail2ban_status="Active"
+            fail2ban_class="success"
+        else
+            fail2ban_status="Installed but inactive"
+            fail2ban_class="warning"
+        fi
+    fi
+    
+    # Copier le template et remplacer les placeholders
+    cp "$template_file" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{HOSTNAME}}|${hostname:-$(hostname)}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{TIMESTAMP}}|${timestamp:-$TIMESTAMP}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{VERSION}}|$VERSION|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PERIOD}}|24h|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAILED_ATTEMPTS}}|${failed_24h:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{UNIQUE_IPS}}|${unique_ips:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{INVALID_USERS}}|${invalid_users:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUCCESSFUL_LOGINS}}|${successful:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{ROOT_ATTACKS}}|${root_attacks:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{BANNED_IPS}}|${banned:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{COUNTRIES_COUNT}}|${countries:-0}|g" "$HTML_OUTPUT_FILE"
+    
+    # Placeholders pour les données détaillées (vraies valeurs maintenant)
+    sed -i "s|{{BRUTE_FORCE_COUNT}}|${brute_force:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PORT_SCAN_COUNT}}|${port_scan:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{DICTIONARY_USERS}}|${dictionary:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{ROOT_ATTACK_SOURCES}}|${root_sources:-0}|g" "$HTML_OUTPUT_FILE"
+    
+    # Générer les top 3 attackers cards
+    local top_3_html=""
+    for i in 0 1 2; do
+        local ip=$(echo "$json_content" | jq -r ".top_attackers[$i].ip // \"N/A\"")
+        local attempts=$(echo "$json_content" | jq -r ".top_attackers[$i].attempts // 0")
+        local country=$(echo "$json_content" | jq -r ".top_attackers[$i].country // \"Unknown\"")
+        local city=$(echo "$json_content" | jq -r ".top_attackers[$i].city // \"Unknown\"")
+        
+        if [[ "$ip" != "N/A" ]]; then
+            top_3_html+="<div class='col-md-4'><div class='card' style='border-top: 3px solid #ef4444;'><div class='card-body'><h6 class='card-subtitle mb-2' style='color: #9ca3af;'>Top $((i+1)) Attacker</h6><h4 class='card-title' style='color: #ef4444; font-family: monospace;'>$ip</h4><p class='mb-1'><strong>$attempts</strong> tentatives</p><p class='mb-0'><i class='bi bi-geo-alt'></i> $city, $country</p></div></div></div>"
+        fi
+    done
+    [[ -z "$top_3_html" ]] && top_3_html="<div class='alert alert-info'>Aucune donnée d'attaquant disponible</div>"
+    
+    # Échapper pour sed
+    top_3_html=$(echo "$top_3_html" | sed 's/[\/&]/\\&/g')
+    sed -i "s|{{TOP_3_CARDS}}|$top_3_html|g" "$HTML_OUTPUT_FILE"
+    
+    # Générer le tableau des attackers (top 20)
+    local attackers_rows=""
+    for i in {0..19}; do
+        local ip=$(echo "$json_content" | jq -r ".top_attackers[$i].ip // null")
+        [[ "$ip" == "null" ]] && break
+        
+        local attempts=$(echo "$json_content" | jq -r ".top_attackers[$i].attempts // 0")
+        local country=$(echo "$json_content" | jq -r ".top_attackers[$i].country // \"Unknown\"")
+        local city=$(echo "$json_content" | jq -r ".top_attackers[$i].city // \"Unknown\"")
+        local isp=$(echo "$json_content" | jq -r ".top_attackers[$i].isp // \"Unknown\"")
+        local banned=$(echo "$json_content" | jq -r ".top_attackers[$i].banned // false")
+        
+        local status="<span class='badge bg-warning'>Not Banned</span>"
+        [[ "$banned" == "true" ]] && status="<span class='badge bg-success'>Banned</span>"
+        
+        attackers_rows+="<tr><td>$((i+1))</td><td style='font-family: monospace;'>$ip</td><td>$attempts</td><td>$country</td><td>$city</td><td>$isp</td><td>$status</td></tr>"
+    done
+    [[ -z "$attackers_rows" ]] && attackers_rows="<tr><td colspan='7' class='text-center'>Aucune donnée disponible</td></tr>"
+    
+    # Échapper pour sed
+    attackers_rows=$(echo "$attackers_rows" | sed 's/[\/&]/\\&/g')
+    
+    # Générer les country badges (top 10 pays)
+    local country_badges=""
+    local countries_list=$(echo "$json_content" | jq -r '[.top_attackers[].country] | group_by(.) | map({country: .[0], count: length}) | sort_by(.count) | reverse | .[0:10]')
+    local countries_count=$(echo "$countries_list" | jq 'length')
+    
+    for i in $(seq 0 $((countries_count-1))); do
+        local country=$(echo "$countries_list" | jq -r ".[$i].country // \"Unknown\"")
+        local count=$(echo "$countries_list" | jq -r ".[$i].count // 0")
+        [[ "$country" != "Unknown" && "$country" != "null" ]] && country_badges+="<span class='badge bg-secondary me-2 mb-2'>$country ($count)</span>"
+    done
+    [[ -z "$country_badges" ]] && country_badges="<span class='badge bg-secondary'>Aucune donnée</span>"
+    
+    country_badges=$(echo "$country_badges" | sed 's/[\/&]/\\&/g')
+    
+    sed -i "s|{{TOP_3_CARDS}}|$top_3_html|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{GEO_LABELS}}|[]|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{GEO_DATA}}|[]|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{TIMELINE_LABELS}}|[]|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{TIMELINE_DATA}}|[]|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{COUNTRY_BADGES}}|$country_badges|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{ATTACKERS_ROWS}}|$attackers_rows|g" "$HTML_OUTPUT_FILE"
+    
+    # Connexions réussies (vraies valeurs)
+    sed -i "s|{{SSH_KEY_LOGINS}}|${ssh_key_logins:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{PASSWORD_LOGINS}}|${password_logins:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{SUCCESSFUL_IPS}}|${successful_ips:-0}|g" "$HTML_OUTPUT_FILE"
+    
+    # Fail2ban (vraies valeurs)
+    sed -i "s|{{FAIL2BAN_STATUS}}|$fail2ban_status|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAIL2BAN_STATUS_CLASS}}|$fail2ban_class|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAIL2BAN_BANNED}}|${banned:-0}|g" "$HTML_OUTPUT_FILE"
+    sed -i "s|{{FAIL2BAN_JAILS}}|0|g" "$HTML_OUTPUT_FILE"
+    
+    sed -i "s|{{JSON_FILE_PATH}}|../json/ssh-analysis_latest.json|g" "$HTML_OUTPUT_FILE"
     
     ln -sf "$HTML_OUTPUT_FILE" "$HTML_LATEST"
+    
+    log_verbose "Rapport HTML généré: $HTML_OUTPUT_FILE"
 }
 
 # ============================================================================
