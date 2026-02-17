@@ -54,7 +54,7 @@ Le script vous guidera à travers le processus.
 **Status:** Réussi ✅
 
 **Détails:**
-- 📧 2 emails envoyés à `d.vyassine@outlook.com`
+- 📧 2 emails envoyés à `xxxxxx@outlook.com`
 - ✅ Status: SENT (confirmé par logs postfix)
 - 🚀 Relay: outlook-com.olc.protection.outlook.com
 - ⏱️ Délai moyen: 2-4 secondes
