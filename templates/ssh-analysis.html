@@ -614,9 +614,9 @@
     const geoChart = new Chart(geoCtx, {
       type: 'doughnut',
       data: {
-        labels: {{ GEO_LABELS }},
+        labels: {{GEO_LABELS}},
     datasets: [{
-      data: {{ GEO_DATA }},
+      data: {{GEO_DATA}},
       backgroundColor: [
       'rgba(220, 53, 69, 0.8)',
       'rgba(255, 193, 7, 0.8)',
@@ -651,10 +651,10 @@
     const timelineChart = new Chart(timelineCtx, {
       type: 'line',
       data: {
-        labels: {{ TIMELINE_LABELS }},
+        labels: {{TIMELINE_LABELS}},
     datasets: [{
       label: 'Tentatives d\'attaque',
-      data: {{ TIMELINE_DATA }},
+      data: {{TIMELINE_DATA}},
       borderColor: 'rgba(220, 53, 69, 1)',
       backgroundColor: 'rgba(220, 53, 69, 0.1)',
       tension: 0.4,
@@ -694,7 +694,7 @@
       data: {
         labels: ['IPs Bannies', 'IPs Actives'],
         datasets: [{
-          data: [{{ FAIL2BAN_BANNED }}, {{ UNIQUE_IPS }} - {{ FAIL2BAN_BANNED }}],
+          data: [{{FAIL2BAN_BANNED}}, {{UNIQUE_IPS}} - {{FAIL2BAN_BANNED}}],
     backgroundColor: [
       'rgba(220, 53, 69, 0.8)',
       'rgba(25, 135, 84, 0.8)'

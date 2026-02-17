@@ -5,6 +5,7 @@ plan-*.md
 *.prompt.md
 PUBLISH.md
 notes/
+.github/ai-context
 
 # Log files
 *.log
