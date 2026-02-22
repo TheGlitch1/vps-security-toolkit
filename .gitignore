@@ -62,3 +62,12 @@ desktop.ini
 
 # Compressed logs
 *.gz
+
+# Fichiers de configuration personnels (ajout 2026-02-22)
+docs/EMAIL-*.md
+docs/*PROBLEM*.md
+.vscode/apikey*
+.vscode/EMAIL*
+*apikey*
+*APIKEY*
+

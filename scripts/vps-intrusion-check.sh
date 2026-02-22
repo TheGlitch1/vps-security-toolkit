@@ -66,6 +66,17 @@ WARNING_COUNT=0
 SUSPICIOUS_COUNT=0
 
 # ============================================================================
+# UTILITAIRES JSON
+# ============================================================================
+
+# Échapper les caractères spéciaux pour JSON
+json_escape() {
+    local input="$1"
+    # Échapper backslash, guillemets doubles, et caractères de contrôle
+    echo "$input" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g; s/\r/\\r/g; s/\n/\\n/g'
+}
+
+# ============================================================================
 # FONCTIONS DE DÉTECTION - SESSIONS SSH
 # ============================================================================
 
@@ -107,6 +118,13 @@ check_active_sessions() {
             :
         fi
         
+        # Échapper les caractères JSON
+        user=$(json_escape "$user")
+        pts=$(json_escape "$pts")
+        from=$(json_escape "$from")
+        login_time=$(json_escape "$login_time")
+        reason=$(json_escape "$reason")
+        
         [[ "$first" == "false" ]] && sessions+=","
         sessions+="{\"user\":\"$user\",\"terminal\":\"$pts\",\"from\":\"$from\",\"login_time\":\"$login_time\",\"suspicious\":$is_suspicious,\"reason\":\"$reason\"}"
         first=false
@@ -146,8 +164,13 @@ check_suspicious_processes() {
                 local cpu=$(ps -p "$pid" -o %cpu= 2>/dev/null | xargs)
                 local mem=$(ps -p "$pid" -o %mem= 2>/dev/null | xargs)
                 
+                # Échapper les caractères JSON
+                local proc_name_escaped=$(json_escape "$proc_name")
+                local user_escaped=$(json_escape "$user")
+                local cmd_escaped=$(json_escape "$cmd")
+                
                 [[ "$first" == "false" ]] && suspicious_list+=","
-                suspicious_list+="{\"pid\":$pid,\"name\":\"$proc_name\",\"user\":\"$user\",\"cpu\":\"$cpu\",\"mem\":\"$mem\",\"cmd\":\"$(json_escape "$cmd")\"}"
+                suspicious_list+="{\"pid\":$pid,\"name\":\"$proc_name_escaped\",\"user\":\"$user_escaped\",\"cpu\":\"$cpu\",\"mem\":\"$mem\",\"cmd\":\"$cmd_escaped\"}"
                 first=false
             done
         fi
@@ -168,8 +191,12 @@ check_suspicious_processes() {
         if ! echo "$suspicious_list" | grep -q "\"pid\":$pid"; then
             found=$((found + 1))
             
+            # Échapper les caractères JSON
+            local user_escaped=$(json_escape "$user")
+            local cmd_escaped=$(json_escape "$cmd")
+            
             [[ "$first" == "false" ]] && suspicious_list+=","
-            suspicious_list+="{\"pid\":$pid,\"name\":\"high-cpu\",\"user\":\"$user\",\"cpu\":\"$cpu\",\"mem\":\"0\",\"cmd\":\"$(json_escape "$cmd")\"}"
+            suspicious_list+="{\"pid\":$pid,\"name\":\"high-cpu\",\"user\":\"$user_escaped\",\"cpu\":\"$cpu\",\"mem\":\"0\",\"cmd\":\"$cmd_escaped\"}"
             first=false
         fi
     done < <(ps aux | awk '$3 > 80 {print $2, $3, $0}' | tail -5)
@@ -208,6 +235,10 @@ check_listening_ports() {
         local port=$(echo "$local_addr" | rev | cut -d: -f1 | rev)
         local state=$(echo "$line" | awk '{print $6}')
         local program=$(echo "$line" | awk '{print $7}' | cut -d'/' -f2)
+        
+        # Échapper les caractères JSON
+        program=$(json_escape "$program")
+        state=$(json_escape "$state")
         
         # Détecter ports suspects
         local is_suspicious=false
@@ -347,6 +378,9 @@ check_system_modifications() {
         fi
     done < /etc/passwd
     
+    # Fermer le tableau files
+    modifications+="]"
+    
     [[ $mod_count -gt 0 || $new_users -gt 0 ]] && WARNING_COUNT=$((WARNING_COUNT + 1))
     
     echo "{\"critical_files_modified\":$mod_count,\"new_users\":$new_users,\"files\":$modifications}"
@@ -394,6 +428,12 @@ check_network_connections() {
                 suspicious=$((suspicious + 1))
                 SUSPICIOUS_COUNT=$((SUSPICIOUS_COUNT + 1))
             fi
+            
+            # Échapper les caractères JSON
+            state=$(json_escape "$state")
+            local_addr=$(json_escape "$local_addr")
+            remote_addr=$(json_escape "$remote_addr")
+            process=$(json_escape "$process")
             
             [[ "$first" == "false" ]] && connections+=","
             connections+="{\"state\":\"$state\",\"local\":\"$local_addr\",\"remote\":\"$remote_addr\",\"process\":\"$process\",\"suspicious\":$is_suspicious}"
