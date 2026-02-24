@@ -434,11 +434,11 @@ collect_audit_data() {
     local users_audit=$(audit_users)
     
     # Calculer le score final en pourcentage (moyenne des 5 audits)
-    local ssh_score=$(echo "$ssh_audit" | grep -oP '(?<="score":)\d+' | tail -1)
-    local f2b_score=$(echo "$fail2ban_audit" | grep -oP '(?<="score":)\d+' | tail -1)
-    local fw_score=$(echo "$firewall_audit" | grep -oP '(?<="score":)\d+' | tail -1)
-    local upd_score=$(echo "$updates_audit" | grep -oP '(?<="score":)\d+' | tail -1)
-    local usr_score=$(echo "$users_audit" | grep -oP '(?<="score":)\d+' | tail -1)
+    local ssh_score=$(echo "$ssh_audit" | jq -r '.score // 0')
+    local f2b_score=$(echo "$fail2ban_audit" | jq -r '.score // 0')
+    local fw_score=$(echo "$firewall_audit" | jq -r '.score // 0')
+    local upd_score=$(echo "$updates_audit" | jq -r '.score // 0')
+    local usr_score=$(echo "$users_audit" | jq -r '.score // 0')
     
     local final_score=$(( (ssh_score + f2b_score + fw_score + upd_score + usr_score) / 5 ))
     
@@ -502,9 +502,9 @@ display_terminal_output() {
     
     local json_content=$(cat "$JSON_OUTPUT_FILE")
     
-    local hostname=$(echo "$json_content" | grep -oP '(?<="hostname": ")[^"]+')
-    local status=$(echo "$json_content" | grep -oP '(?<="status": ")[^"]+')
-    local score=$(echo "$json_content" | grep -oP '(?<="score": )\d+')
+    local hostname=$(echo "$json_content" | jq -r '.metadata.hostname // "unknown"')
+    local status=$(echo "$json_content" | jq -r '.summary.status // "UNKNOWN"')
+    local score=$(echo "$json_content" | jq -r '.summary.score // 0')
     
     print_header "🔒 VPS Security Audit Report"
     
@@ -543,9 +543,9 @@ display_terminal_output() {
     
     # Fail2ban
     print_section "🛡️  Fail2ban"
-    local f2b_installed=$(echo "$json_content" | grep -oP '"fail2ban".*?"installed":(true|false)' | grep -oP '(true|false)')
-    local f2b_active=$(echo "$json_content" | grep -oP '"fail2ban".*?"active":(true|false)' | grep -oP '(true|false)')
-    local jails=$(echo "$json_content" | grep -oP '"jails_count":\d+' | grep -oP '\d+')
+    local f2b_installed=$(echo "$json_content" | jq -r '.audits.fail2ban.installed // false')
+    local f2b_active=$(echo "$json_content" | jq -r '.audits.fail2ban.active // false')
+    local jails=$(echo "$json_content" | jq -r '.audits.fail2ban.jails_count // 0')
     
     if [[ "$f2b_installed" == "true" ]]; then
         print_table_row "Installation" "✓ Installé" "OK"
@@ -562,8 +562,8 @@ display_terminal_output() {
     
     # Firewall
     print_section "🔥 Firewall"
-    local ufw_installed=$(echo "$json_content" | grep -oP '"ufw".*?"installed":(true|false)' | grep -oP '(true|false)' | head -1)
-    local ufw_active=$(echo "$json_content" | grep -oP '"ufw".*?"active":(true|false)' | grep -oP '(true|false)' | head -1)
+    local ufw_installed=$(echo "$json_content" | jq -r '.audits.firewall.ufw.installed // false')
+    local ufw_active=$(echo "$json_content" | jq -r '.audits.firewall.ufw.active // false')
     
     if [[ "$ufw_installed" == "true" ]]; then
         print_table_row "UFW" "✓ Installé" "OK"
@@ -579,9 +579,9 @@ display_terminal_output() {
     
     # Mises à jour
     print_section "📦 Mises à Jour"
-    local sec_updates=$(echo "$json_content" | grep -oP '"security_updates":\d+' | grep -oP '\d+')
-    local total_updates=$(echo "$json_content" | grep -oP '"total_updates":\d+' | grep -oP '\d+')
-    local reboot=$(echo "$json_content" | grep -oP '"reboot_required":(true|false)' | grep -oP '(true|false)')
+    local sec_updates=$(echo "$json_content" | jq -r '.audits.updates.security_updates // 0')
+    local total_updates=$(echo "$json_content" | jq -r '.audits.updates.total_updates // 0')
+    local reboot=$(echo "$json_content" | jq -r '.audits.updates.reboot_required // false')
     
     local update_status="OK"
     [[ $sec_updates -gt 0 ]] && update_status="WARNING"
@@ -597,8 +597,8 @@ display_terminal_output() {
     
     # Utilisateurs
     print_section "👥 Comptes Utilisateurs"
-    local users_shell=$(echo "$json_content" | grep -oP '"users_with_shell":\d+' | grep -oP '\d+' | head -1)
-    local users_uid0=$(echo "$json_content" | grep -oP '"users_with_uid0":\d+' | grep -oP '\d+' | head -1)
+    local users_shell=$(echo "$json_content" | jq -r '.audits.users.users_with_shell // 0')
+    local users_uid0=$(echo "$json_content" | jq -r '.audits.users.users_with_uid0 // 0')
     
     print_table_row "Comptes avec shell" "$users_shell" "INFO"
     
@@ -795,8 +795,8 @@ generate_html_output() {
 
 send_alerts() {
     local json_content=$(cat "$JSON_OUTPUT_FILE")
-    local score=$(echo "$json_content" | grep -oP '(?<="score": )\d+')
-    local status=$(echo "$json_content" | grep -oP '(?<="status": ")[^"]+')
+    local score=$(echo "$json_content" | jq -r '.summary.score // 0')
+    local status=$(echo "$json_content" | jq -r '.summary.status // "UNKNOWN"')
     
     # Vérifier si on doit envoyer une alerte
     if [[ "$ALERT_ON_LOW_SCORE" == "true" && $score -lt $SECURITY_SCORE_MINIMUM ]]; then
